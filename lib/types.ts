@@ -25,9 +25,6 @@ export interface Stablecoin {
 export interface SupplyDataPoint {
   date: string;
   total: number;
-  brz: number;
-  brla: number;
-  cbrl: number;
   [key: string]: number | string;
 }
 

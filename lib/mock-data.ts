@@ -8,25 +8,29 @@ import {
   StablecoinDetail,
 } from "./types";
 
+// Values aligned with Iporanga dashboard (Mar 2026)
+// Total Supply: ~$90M USD | Weekly Volume: ~$107M | Holders: ~106K
 export const mockOverview: OverviewData = {
-  totalMarketCap: 46_200_000,
-  marketCapChange24h: 1.87,
-  totalSupply: 261_500_000,
-  supplyChange24h: 0.94,
-  totalHolders: 58_400,
+  totalMarketCap: 90_330_000,
+  marketCapChange24h: 1.42,
+  totalSupply: 524_000_000, // ~524M BRL ≈ $90M USD
+  supplyChange24h: 0.78,
+  totalHolders: 106_200,
   holdersChange24h: 0.52,
-  volume24h: 12_800_000,
-  volumeChange24h: -2.15,
+  volume24h: 15_320_000, // weekly ~$107M → daily ~$15M
+  volumeChange24h: -1.85,
 };
 
+// 6 BRL stablecoins from Iporanga + DeFiLlama
+// Supply in BRL units, marketCap/volume in USD
 export const mockStablecoins: Stablecoin[] = [
   {
     symbol: "BRZ",
     name: "BRZ (Transfero)",
-    supply: 260_700_000,
-    marketCap: 44_900_000,
-    volume24h: 11_200_000,
-    price: 0.172,
+    supply: 260_700_000, // DeFiLlama: 260.7M BRL
+    marketCap: 44_900_000, // ~$44.9M USD
+    volume24h: 8_400_000,
+    price: 0.172, // ~1 BRL in USD
     priceChange24h: 0.03,
     chains: [
       "Ethereum",
@@ -50,19 +54,43 @@ export const mockStablecoins: Stablecoin[] = [
   {
     symbol: "BRLA",
     name: "BRLA Digital",
-    supply: 580_000,
-    marketCap: 100_000,
-    volume24h: 820_000,
+    supply: 142_000_000, // significant player per Iporanga
+    marketCap: 24_500_000,
+    volume24h: 4_200_000,
     price: 0.172,
     priceChange24h: -0.01,
     chains: ["Ethereum", "Polygon"],
-    change7d: 8.45,
+    change7d: 5.32,
     color: "#7C3AED",
   },
   {
-    symbol: "cBRL",
+    symbol: "BRL1",
+    name: "BRL1 (Num Finance)",
+    supply: 68_000_000,
+    marketCap: 11_700_000,
+    volume24h: 1_100_000,
+    price: 0.172,
+    priceChange24h: 0.01,
+    chains: ["Polygon"],
+    change7d: 1.45,
+    color: "#00B4D8",
+  },
+  {
+    symbol: "BBRL",
+    name: "BBRL",
+    supply: 32_000_000,
+    marketCap: 5_500_000,
+    volume24h: 620_000,
+    price: 0.172,
+    priceChange24h: -0.02,
+    chains: ["Ethereum", "Polygon"],
+    change7d: -0.87,
+    color: "#F59E0B",
+  },
+  {
+    symbol: "BRLm",
     name: "Mento Brazilian Real",
-    supply: 215_000,
+    supply: 215_000, // DeFiLlama: ~215K BRL
     marketCap: 37_000,
     volume24h: 42_000,
     price: 0.172,
@@ -72,15 +100,15 @@ export const mockStablecoins: Stablecoin[] = [
     color: "#35D07F",
   },
   {
-    symbol: "BRTH",
-    name: "BRTH",
-    supply: 0,
-    marketCap: 0,
-    volume24h: 0,
-    price: 0,
-    priceChange24h: 0,
-    chains: ["Polygon"],
-    change7d: 0,
+    symbol: "BRLV",
+    name: "BRLV",
+    supply: 18_500_000,
+    marketCap: 3_190_000,
+    volume24h: 280_000,
+    price: 0.172,
+    priceChange24h: 0.0,
+    chains: ["Polygon", "Ethereum"],
+    change7d: 0.62,
     color: "#EC4899",
   },
 ];
@@ -89,23 +117,34 @@ function generateSupplyHistory(days: number): SupplyDataPoint[] {
   const data: SupplyDataPoint[] = [];
   const now = new Date();
   let baseBrz = 230_000_000;
-  let baseBrla = 320_000;
-  let baseCbrl = 180_000;
+  let baseBrla = 105_000_000;
+  let baseBrl1 = 48_000_000;
+  let baseBbrl = 25_000_000;
+  let baseBrlm = 180_000;
+  let baseBrlv = 14_000_000;
 
   for (let i = days; i >= 0; i--) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
 
-    baseBrz += Math.random() * 1_500_000 - 600_000;
-    baseBrla += Math.random() * 30_000 - 10_000;
-    baseCbrl += Math.random() * 8_000 - 4_000;
+    baseBrz += Math.random() * 1_200_000 - 400_000;
+    baseBrla += Math.random() * 1_500_000 - 500_000;
+    baseBrl1 += Math.random() * 800_000 - 300_000;
+    baseBbrl += Math.random() * 300_000 - 120_000;
+    baseBrlm += Math.random() * 2_000 - 1_000;
+    baseBrlv += Math.random() * 200_000 - 80_000;
 
     data.push({
       date: date.toISOString().split("T")[0],
       brz: Math.round(baseBrz),
       brla: Math.round(baseBrla),
-      cbrl: Math.round(baseCbrl),
-      total: Math.round(baseBrz + baseBrla + baseCbrl),
+      brl1: Math.round(baseBrl1),
+      bbrl: Math.round(baseBbrl),
+      brlm: Math.round(baseBrlm),
+      brlv: Math.round(baseBrlv),
+      total: Math.round(
+        baseBrz + baseBrla + baseBrl1 + baseBbrl + baseBrlm + baseBrlv
+      ),
     });
   }
   return data;
@@ -119,17 +158,16 @@ export const mockSupplyHistory: Record<string, SupplyDataPoint[]> = {
   all: generateSupplyHistory(730),
 };
 
+// Chain breakdown (aligned with Iporanga: 8 blockchains)
 export const mockChainData: ChainData[] = [
-  { chain: "Polygon", supply: 98_000_000, color: "#8247E5" },
-  { chain: "Ethereum", supply: 62_000_000, color: "#627EEA" },
-  { chain: "Solana", supply: 38_000_000, color: "#00D4AA" },
-  { chain: "BNB Chain", supply: 22_000_000, color: "#F3BA2F" },
-  { chain: "Base", supply: 15_000_000, color: "#0052FF" },
-  { chain: "Gnosis", supply: 10_000_000, color: "#04795B" },
-  { chain: "Avalanche", supply: 6_500_000, color: "#E84142" },
-  { chain: "Celo", supply: 4_200_000, color: "#35D07F" },
-  { chain: "Arbitrum", supply: 3_000_000, color: "#28A0F0" },
-  { chain: "Tron", supply: 2_000_000, color: "#FF060A" },
+  { chain: "Polygon", supply: 185_000_000, color: "#8247E5" },
+  { chain: "Ethereum", supply: 142_000_000, color: "#627EEA" },
+  { chain: "Solana", supply: 78_000_000, color: "#00D4AA" },
+  { chain: "BNB Chain", supply: 42_000_000, color: "#F3BA2F" },
+  { chain: "Base", supply: 28_000_000, color: "#0052FF" },
+  { chain: "Gnosis", supply: 18_000_000, color: "#04795B" },
+  { chain: "Avalanche", supply: 16_000_000, color: "#E84142" },
+  { chain: "Celo", supply: 15_200_000, color: "#35D07F" },
 ];
 
 function generateMintBurn(days: number): MintBurnDataPoint[] {
@@ -140,8 +178,8 @@ function generateMintBurn(days: number): MintBurnDataPoint[] {
     date.setDate(date.getDate() - i);
     data.push({
       date: date.toISOString().split("T")[0],
-      mint: Math.round(Math.random() * 3_000_000 + 500_000),
-      burn: Math.round(Math.random() * 2_000_000 + 300_000),
+      mint: Math.round(Math.random() * 1_500_000 + 200_000),
+      burn: Math.round(Math.random() * 1_000_000 + 100_000),
     });
   }
   return data;
@@ -149,70 +187,87 @@ function generateMintBurn(days: number): MintBurnDataPoint[] {
 
 export const mockMintBurnHistory = generateMintBurn(30);
 
+// Pools aligned with Iporanga's Top 10 Pools by TVL
 export const mockPools: Pool[] = [
   {
     protocol: "Uniswap V3",
     chain: "Polygon",
-    pair: "BRZ/USDC",
-    tvl: 4_500_000,
-    volume24h: 1_800_000,
-    apy: 12.4,
-  },
-  {
-    protocol: "Curve",
-    chain: "Ethereum",
-    pair: "BRZ/USDT",
-    tvl: 3_200_000,
-    volume24h: 980_000,
-    apy: 8.7,
+    pair: "BRLA/USDC",
+    tvl: 199_230,
+    volume24h: 151_400,
+    apy: 14.1,
   },
   {
     protocol: "Uniswap V3",
-    chain: "Ethereum",
+    chain: "Celo",
+    pair: "cREAL/USDT",
+    tvl: 157_060,
+    volume24h: 32_760,
+    apy: 9.8,
+  },
+  {
+    protocol: "Balancer",
+    chain: "Polygon",
+    pair: "USDC/BRL1",
+    tvl: 89_960,
+    volume24h: 540,
+    apy: 3.2,
+  },
+  {
+    protocol: "Uniswap V3",
+    chain: "Base",
     pair: "BRZ/USDC",
-    tvl: 2_800_000,
-    volume24h: 720_000,
-    apy: 10.2,
+    tvl: 65_240,
+    volume24h: 37,
+    apy: 1.8,
+  },
+  {
+    protocol: "Balancer",
+    chain: "Polygon",
+    pair: "USDC/BRLA",
+    tvl: 62_720,
+    volume24h: 22_497,
+    apy: 12.5,
+  },
+  {
+    protocol: "Ubeswap",
+    chain: "Celo",
+    pair: "cREAL/cEUR",
+    tvl: 42_950,
+    volume24h: 4_851,
+    apy: 8.4,
+  },
+  {
+    protocol: "Uniswap V3",
+    chain: "Polygon",
+    pair: "USDT/BRZ",
+    tvl: 23_660,
+    volume24h: 14_667,
+    apy: 18.2,
+  },
+  {
+    protocol: "Ubeswap",
+    chain: "Celo",
+    pair: "cREAL/cKES",
+    tvl: 23_100,
+    volume24h: 1_701,
+    apy: 6.1,
+  },
+  {
+    protocol: "Balancer",
+    chain: "Polygon",
+    pair: "BRL1/USDT",
+    tvl: 8_760,
+    volume24h: 58,
+    apy: 2.4,
   },
   {
     protocol: "Orca",
     chain: "Solana",
     pair: "BRZ/USDC",
-    tvl: 1_900_000,
-    volume24h: 640_000,
-    apy: 18.6,
-  },
-  {
-    protocol: "PancakeSwap",
-    chain: "BNB Chain",
-    pair: "BRZ/BUSD",
-    tvl: 1_200_000,
-    volume24h: 380_000,
-    apy: 11.3,
-  },
-  {
-    protocol: "Ubeswap",
-    chain: "Celo",
-    pair: "cBRL/cUSD",
-    tvl: 420_000,
-    volume24h: 85_000,
-    apy: 9.8,
-  },
-  {
-    protocol: "Uniswap V3",
-    chain: "Polygon",
-    pair: "BRLA/USDC",
-    tvl: 380_000,
-    volume24h: 120_000,
-    apy: 14.1,
-  },
-  {
-    protocol: "Raydium",
-    chain: "Solana",
-    pair: "BRZ/SOL",
-    tvl: 340_000,
-    volume24h: 190_000,
-    apy: 22.5,
+    tvl: 6_800,
+    volume24h: 2_400,
+    apy: 15.3,
   },
 ];
 
@@ -254,6 +309,15 @@ export function getMockStablecoinDetail(symbol: string): StablecoinDetail {
     Rootstock: "#FF9931",
   };
 
+  const websites: Record<string, string> = {
+    BRZ: "https://brz.digital",
+    BRLA: "https://brla.digital",
+    BRL1: "https://num.finance",
+    BRLm: "https://mento.org",
+    BBRL: "#",
+    BRLV: "#",
+  };
+
   return {
     symbol: coin.symbol,
     name: coin.name,
@@ -265,14 +329,7 @@ export function getMockStablecoinDetail(symbol: string): StablecoinDetail {
     holders: Math.round(Math.random() * 20_000 + 5_000),
     chains: coin.chains,
     description: `${coin.name} (${coin.symbol}) is a BRL-pegged stablecoin operating across ${coin.chains.length} blockchain(s).`,
-    website:
-      coin.symbol === "BRZ"
-        ? "https://brz.digital"
-        : coin.symbol === "BRLA"
-          ? "https://brla.digital"
-          : coin.symbol === "cBRL"
-            ? "https://mento.org"
-            : "#",
+    website: websites[coin.symbol] || "#",
     supplyHistory,
     chainBreakdown: coin.chains.map((chain) => ({
       chain,
