@@ -26,10 +26,9 @@ export interface SupplyDataPoint {
   date: string;
   total: number;
   brz: number;
-  brlc: number;
-  drex: number;
-  creal: number;
-  brlx: number;
+  brla: number;
+  cbrl: number;
+  [key: string]: number | string;
 }
 
 export interface ChainData {
