@@ -24,7 +24,6 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
     { chain: "Ethereum", address: "0x01d33fd36ec67c6ada32cf36b31e88ee190b1839" },
     { chain: "BSC", address: "0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb" },
     { chain: "Avalanche", address: "0x491a4eb4f1fc3bff8e1d2fc856a6a46663ad556f" },
-    { chain: "Gnosis", address: "0x0a06c8354A6CC1a07549a38701eAc205942E3Ac6" },
     { chain: "Arbitrum", address: "0xA8940698FdA5A07AbAEf4A5ccDf2f1Bb525B47A2" },
   ],
   BRLA: [

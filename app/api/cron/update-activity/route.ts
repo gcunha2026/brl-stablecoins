@@ -23,7 +23,6 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
   BRLV: [{ chain: "Base", address: "0x57323Db6d883811C17877d075e05AD9E2ED41519" }],
   BRZ: [
     { chain: "Polygon", address: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc" },
-    { chain: "Gnosis", address: "0x0a06c8354A6CC1a07549a38701eAc205942E3Ac6" },
     { chain: "Arbitrum", address: "0xA8940698FdA5A07AbAEf4A5ccDf2f1Bb525B47A2" },
   ],
   BRLA: [{ chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" }],
