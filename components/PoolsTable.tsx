@@ -76,10 +76,10 @@ export default function PoolsTable() {
                   {pool.pair}
                 </td>
                 <td className="py-3 px-3 text-sm text-text-primary text-right">
-                  R$ {formatNumber(pool.tvl)}
+                  $ {formatNumber(pool.tvl)}
                 </td>
                 <td className="py-3 px-3 text-sm text-text-secondary text-right">
-                  R$ {formatNumber(pool.volume24h)}
+                  $ {formatNumber(pool.volume24h)}
                 </td>
                 <td className="py-3 px-3 text-right">
                   <span className="text-sm font-medium text-accent-teal">

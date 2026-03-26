@@ -138,7 +138,7 @@ export default function StablecoinDetailPage() {
         />
         <StatCard
           title="Total Supply"
-          value={`R$ ${formatNumber(data.supply)}`}
+          value={formatNumber(data.supply)}
           icon={Layers}
         />
         <StatCard
@@ -148,7 +148,7 @@ export default function StablecoinDetailPage() {
         />
         <StatCard
           title="24h Volume"
-          value={`R$ ${formatNumber(data.volume24h)}`}
+          value={`$ ${formatNumber(data.volume24h)}`}
           icon={Activity}
         />
       </section>
@@ -199,7 +199,7 @@ export default function StablecoinDetailPage() {
                   }}
                   labelStyle={{ color: "#E4E4E7" }}
                   formatter={(value: number) => [
-                    `R$ ${formatNumber(value)}`,
+                    `$ ${formatNumber(value)}`,
                     "Supply",
                   ]}
                   labelFormatter={formatShortDate}
@@ -251,7 +251,7 @@ export default function StablecoinDetailPage() {
                       fontSize: "12px",
                     }}
                     formatter={(value: number) => [
-                      `R$ ${formatNumber(value)}`,
+                      `$ ${formatNumber(value)}`,
                       "Supply",
                     ]}
                   />
@@ -274,7 +274,7 @@ export default function StablecoinDetailPage() {
                     </span>
                   </div>
                   <span className="text-sm text-text-primary">
-                    R$ {formatNumber(cb.supply)}
+                    $ {formatNumber(cb.supply)}
                   </span>
                 </div>
               ))}
@@ -335,10 +335,10 @@ export default function StablecoinDetailPage() {
                         {pool.pair}
                       </td>
                       <td className="py-3 px-3 text-sm text-text-primary text-right">
-                        R$ {formatNumber(pool.tvl)}
+                        $ {formatNumber(pool.tvl)}
                       </td>
                       <td className="py-3 px-3 text-sm text-text-secondary text-right">
-                        R$ {formatNumber(pool.volume24h)}
+                        $ {formatNumber(pool.volume24h)}
                       </td>
                       <td className="py-3 px-3 text-right">
                         <span className="text-sm font-medium text-accent-teal">

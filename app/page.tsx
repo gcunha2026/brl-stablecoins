@@ -95,10 +95,10 @@ export default function DashboardPage() {
               loading={loading}
             />
             <StatCard
-              title="Supply Total"
+              title="Supply Total (tokens)"
               value={
                 overview
-                  ? `R$ ${formatNumber(overview.totalSupply)}`
+                  ? formatNumber(overview.totalSupply)
                   : "---"
               }
               change={overview?.supplyChange24h}

@@ -64,7 +64,7 @@ export default function MintBurnChart({
               }}
               labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number, name: string) => [
-                `R$ ${formatNumber(value)}`,
+                `$ ${formatNumber(value)}`,
                 name === "mint" ? "Minted" : "Burned",
               ]}
               labelFormatter={formatShortDate}

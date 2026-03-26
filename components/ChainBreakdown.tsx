@@ -73,7 +73,7 @@ export default function ChainBreakdown() {
               }}
               labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number) => [
-                `R$ ${formatNumber(value)}`,
+                `$ ${formatNumber(value)}`,
                 "Supply",
               ]}
             />

@@ -105,11 +105,11 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
         />
         <StatCard
           title="Supply"
-          value={`R$ ${formatNumber(coin.supply)}`}
+          value={formatNumber(coin.supply)}
           icon={Layers}
         />
         <StatCard
-          title="Preco (USD)"
+          title="Preco"
           value={`$ ${coin.price.toFixed(4)}`}
           icon={DollarSign}
         />
@@ -151,7 +151,7 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
                       fontSize: "12px",
                     }}
                     formatter={(value: number) => [
-                      `R$ ${formatNumber(value)}`,
+                      `$ ${formatNumber(value)}`,
                       "Supply",
                     ]}
                   />
@@ -175,7 +175,7 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-text-primary">
-                      R$ {formatNumber(ch.supply)}
+                      {formatNumber(ch.supply)}
                     </span>
                     <span className="text-xs text-text-muted w-12 text-right">
                       {ch.percentage.toFixed(1)}%
@@ -194,7 +194,7 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
           <span className="text-sm text-text-muted">Chain:</span>
           <ChainBadge chain={pieData[0].chain} />
           <span className="text-sm text-text-primary ml-auto">
-            R$ {formatNumber(pieData[0].supply)}
+            {formatNumber(pieData[0].supply)}
           </span>
         </div>
       )}

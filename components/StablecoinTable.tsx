@@ -63,7 +63,7 @@ export default function StablecoinTable({ onSelectCoin }: Props) {
 
   const columns: { key: SortKey; label: string; align?: string }[] = [
     { key: "symbol", label: "Token" },
-    { key: "supply", label: "Supply (BRL)", align: "right" },
+    { key: "supply", label: "Supply", align: "right" },
     { key: "marketCap", label: "Market Cap (USD)", align: "right" },
     { key: "price", label: "Preco (USD)", align: "right" },
   ];
@@ -146,7 +146,7 @@ export default function StablecoinTable({ onSelectCoin }: Props) {
 
                 {/* Supply */}
                 <td className="py-3.5 px-3 text-right text-sm text-text-primary">
-                  R$ {formatNumber(coin.supply)}
+                  {formatNumber(coin.supply)}
                 </td>
 
                 {/* Market Cap */}

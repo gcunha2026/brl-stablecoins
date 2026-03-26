@@ -82,7 +82,7 @@ export default function SupplyChart() {
               }}
               labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number) => [
-                `R$ ${formatNumber(value)}`,
+                `$ ${formatNumber(value)}`,
                 "Total Supply",
               ]}
               labelFormatter={formatShortDate}

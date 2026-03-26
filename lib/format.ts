@@ -3,7 +3,7 @@
  */
 export function formatCurrency(
   value: number,
-  currency: string = "BRL"
+  currency: string = "USD"
 ): string {
   const locale = currency === "BRL" ? "pt-BR" : "en-US";
   return new Intl.NumberFormat(locale, {
