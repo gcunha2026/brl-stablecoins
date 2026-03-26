@@ -11,10 +11,11 @@ export async function GET(
 ) {
   const { symbol } = params;
 
-  // Debug header to check if Supabase is connected
   const data = await getTokenActivity(symbol);
   const res = NextResponse.json(data);
   res.headers.set("x-source", supabase ? "supabase" : "blockscout-fallback");
   res.headers.set("x-days", String(data.daily.length));
+  res.headers.set("x-env-url", process.env.SUPABASE_URL ? "yes" : "no");
+  res.headers.set("x-env-key", process.env.SUPABASE_SERVICE_KEY ? "yes" : "no");
   return res;
 }
