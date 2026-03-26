@@ -68,7 +68,7 @@ async function fetchAllTransfers(
   const url = `${apiBase}/tokens/${contractAddress}/transfers`;
   let params: Record<string, string> = {};
   let pages = 0;
-  const MAX_PAGES = 200; // 200 pages * 50 items = 10k transfers max
+  const MAX_PAGES = 15; // 15 pages * 50 items = 750 transfers (fits Vercel 10s timeout)
   const MIN_DATE = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
     .toISOString()
     .slice(0, 10); // 1 year lookback

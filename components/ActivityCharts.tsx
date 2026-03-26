@@ -26,6 +26,7 @@ interface DailyActivity {
 
 interface Props {
   symbol: string;
+  prefetchedData?: { daily: DailyActivity[]; counters: any } | null;
 }
 
 const PERIOD_LABELS: Record<Period, string> = {
@@ -113,25 +114,21 @@ const tooltipStyle = {
   fontSize: "12px",
 };
 
-export default function ActivityCharts({ symbol }: Props) {
+export default function ActivityCharts({ symbol, prefetchedData }: Props) {
   const [data, setData] = useState<DailyActivity[]>([]);
-  const [counters, setCounters] = useState({ holders: 0, totalTransfers: 0 });
   const [loading, setLoading] = useState(true);
   const [mintPeriod, setMintPeriod] = useState<Period>("all");
   const [tradesPeriod, setTradesPeriod] = useState<Period>("all");
   const [walletsPeriod, setWalletsPeriod] = useState<Period>("all");
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/stablecoin/${symbol}/activity`)
-      .then((r) => r.json())
-      .then((res) => {
-        setData(res.daily ?? []);
-        setCounters(res.counters ?? { holders: 0, totalTransfers: 0 });
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [symbol]);
+    if (prefetchedData) {
+      setData(prefetchedData.daily ?? []);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+  }, [prefetchedData]);
 
   const mintData = useMemo(() => filterByPeriod(data, mintPeriod), [data, mintPeriod]);
   const tradesData = useMemo(() => filterByPeriod(data, tradesPeriod), [data, tradesPeriod]);

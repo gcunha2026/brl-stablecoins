@@ -31,13 +31,24 @@ interface CoinDetailProps {
   chainBreakdown: { chain: string; supply: number; percentage: number }[];
 }
 
+interface ActivityData {
+  daily: any[];
+  counters: { holders: number; totalTransfers: number };
+}
+
 export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
   const [holders, setHolders] = useState<number>(0);
+  const [activityData, setActivityData] = useState<ActivityData | null>(null);
 
   useEffect(() => {
+    setActivityData(null);
+    setHolders(0);
     fetch(`/api/stablecoin/${coin.symbol}/activity`)
       .then((r) => r.json())
-      .then((data) => setHolders(data.counters?.holders ?? 0))
+      .then((data) => {
+        setHolders(data.counters?.holders ?? 0);
+        setActivityData(data);
+      })
       .catch(() => {});
   }, [coin.symbol]);
 
@@ -211,7 +222,7 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
       )}
 
       {/* Activity Charts */}
-      <ActivityCharts symbol={coin.symbol} />
+      <ActivityCharts symbol={coin.symbol} prefetchedData={activityData} />
     </div>
   );
 }
