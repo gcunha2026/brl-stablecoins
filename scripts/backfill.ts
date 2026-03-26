@@ -28,6 +28,8 @@ const BLOCKSCOUT_V1: Record<string, string> = {
   Celo: "https://celo.blockscout.com/api",
   Moonbeam: "https://moonbeam.blockscout.com/api",
   BSC: "https://bsc.blockscout.com/api",
+  Gnosis: "https://gnosis.blockscout.com/api",
+  Arbitrum: "https://arbitrum.blockscout.com/api",
 };
 
 const BLOCKSCOUT_V2: Record<string, string> = {
@@ -37,14 +39,18 @@ const BLOCKSCOUT_V2: Record<string, string> = {
   Celo: "https://celo.blockscout.com/api/v2",
   Moonbeam: "https://moonbeam.blockscout.com/api/v2",
   BSC: "https://bsc.blockscout.com/api/v2",
+  Gnosis: "https://gnosis.blockscout.com/api/v2",
+  Arbitrum: "https://arbitrum.blockscout.com/api/v2",
 };
 
 const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
-  BRLY: [{ chain: "Base", address: "0x57323Db6d883811C17877d075e05AD9E2ED41519" }],
+  BRLV: [{ chain: "Base", address: "0x57323Db6d883811C17877d075e05AD9E2ED41519" }],
   BRZ: [
     { chain: "Polygon", address: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc" },
     { chain: "Ethereum", address: "0x420412E765BFa6d85aaaC94b4f7b708C89be2e2B" },
     { chain: "BSC", address: "0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb" },
+    { chain: "Gnosis", address: "0x0a06c8354A6CC1a07549a38701eAc205942E3Ac6" },
+    { chain: "Arbitrum", address: "0xA8940698FdA5A07AbAEf4A5ccDf2f1Bb525B47A2" },
   ],
   BRLA: [
     { chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" },
@@ -52,6 +58,7 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
   ],
   ABRL: [{ chain: "Polygon", address: "0x5acad7EDCcD4846F99335E26a7e6398D869dEc4f" }],
   BRL1: [{ chain: "Polygon", address: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5" }],
+  BBRL: [{ chain: "Polygon", address: "0x0B28f768BA2448c402c8A48b03e9dB3dD1eAF84E" }],
   BRLC: [{ chain: "Celo", address: "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787" }],
 };
 

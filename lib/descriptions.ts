@@ -12,7 +12,7 @@ export const STABLECOIN_DESCRIPTIONS: Record<string, { description: string; webs
     website: "https://brla.digital",
     issuer: "BRLA Digital",
   },
-  BRLY: {
+  BRLV: {
     description:
       "Stablecoin de Real da Crown, operando na rede Base. Prova de reservas disponível publicamente.",
     website: "https://brl.xyz",
@@ -29,6 +29,12 @@ export const STABLECOIN_DESCRIPTIONS: Record<string, { description: string; webs
       "Stablecoin de Real na rede Polygon.",
     website: "",
     issuer: "",
+  },
+  BBRL: {
+    description:
+      "Stablecoin de Real na rede Polygon.",
+    website: "",
+    issuer: "BBRL",
   },
   BRLC: {
     description:

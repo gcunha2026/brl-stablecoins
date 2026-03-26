@@ -19,10 +19,11 @@ import {
 const COIN_COLORS: Record<string, string> = {
   BRZ: "#22c55e",
   BRLA: "#3b82f6",
-  BRLY: "#f59e0b",
+  BRLV: "#f59e0b",
   ABRL: "#8b5cf6",
   BRL1: "#ef4444",
   BRAZA: "#06b6d4",
+  BBRL: "#10b981",
   BRLC: "#ec4899",
   BRLx: "#14b8a6",
   cBRL: "#f97316",

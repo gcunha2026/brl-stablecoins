@@ -59,6 +59,8 @@ const REGISTRY: StablecoinEntry[] = [
       { chain: "Ethereum", address: "0x420412E765BFa6d85aaaC94b4f7b708C89be2e2B" },
       { chain: "Polygon", address: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc" },
       { chain: "BSC", address: "0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb" },
+      { chain: "Gnosis", address: "0x0a06c8354A6CC1a07549a38701eAc205942E3Ac6" },
+      { chain: "Arbitrum", address: "0xA8940698FdA5A07AbAEf4A5ccDf2f1Bb525B47A2" },
     ],
   },
   {
@@ -72,8 +74,8 @@ const REGISTRY: StablecoinEntry[] = [
     ],
   },
   {
-    symbol: "BRLY",
-    name: "Crown (BRLY)",
+    symbol: "BRLV",
+    name: "Crown (BRLV)",
     issuer: "Crown",
     contracts: [
       { chain: "Base", address: "0x57323Db6d883811C17877d075e05AD9E2ED41519" },
@@ -93,6 +95,14 @@ const REGISTRY: StablecoinEntry[] = [
     issuer: "Unknown",
     contracts: [
       { chain: "Polygon", address: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5" },
+    ],
+  },
+  {
+    symbol: "BBRL",
+    name: "BBRL",
+    issuer: "BBRL",
+    contracts: [
+      { chain: "Polygon", address: "0x0B28f768BA2448c402c8A48b03e9dB3dD1eAF84E" },
     ],
   },
   {
