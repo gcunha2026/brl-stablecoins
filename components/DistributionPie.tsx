@@ -6,13 +6,10 @@ import { Stablecoin } from "@/lib/types";
 import { fetchStablecoins } from "@/lib/api";
 import { formatNumber, formatCurrency } from "@/lib/format";
 
-type ViewMode = "all" | "ex-brz";
-
 export default function DistributionPie() {
   const [data, setData] = useState<Stablecoin[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [view, setView] = useState<ViewMode>("all");
 
   useEffect(() => {
     fetchStablecoins().then((d) => {
@@ -32,35 +29,13 @@ export default function DistributionPie() {
     );
   }
 
-  const filtered =
-    view === "ex-brz"
-      ? data.filter((s) => s.symbol !== "BRZ")
-      : data;
-
-  const totalMcap = filtered.reduce((sum, s) => sum + s.marketCap, 0);
+  const totalMcap = data.reduce((sum, s) => sum + s.marketCap, 0);
 
   return (
     <div className="bg-card border border-card-border rounded-card p-5 card-hover">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-text-primary">
-          Market Cap Distribution
-        </h3>
-        <div className="flex gap-1 bg-primary rounded-lg p-0.5">
-          {(["all", "ex-brz"] as ViewMode[]).map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setView(mode)}
-              className={`px-3 py-1 text-xs rounded-md transition-colors ${
-                view === mode
-                  ? "bg-accent-teal/20 text-accent-teal"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {mode === "all" ? "Todos" : "Ex-BRZ"}
-            </button>
-          ))}
-        </div>
-      </div>
+      <h3 className="text-lg font-semibold text-text-primary mb-4">
+        Market Cap Distribution
+      </h3>
 
       <div className="flex flex-col lg:flex-row items-center gap-4">
         {/* Chart */}
@@ -68,7 +43,7 @@ export default function DistributionPie() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={filtered}
+                data={data}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -79,7 +54,7 @@ export default function DistributionPie() {
                 onMouseEnter={(_, index) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
-                {filtered.map((entry, index) => (
+                {data.map((entry, index) => (
                   <Cell
                     key={entry.symbol}
                     fill={entry.color}
@@ -108,7 +83,7 @@ export default function DistributionPie() {
 
         {/* Legend */}
         <div className="w-full lg:w-1/2 space-y-2.5">
-          {filtered.map((coin) => {
+          {data.map((coin) => {
             const pct =
               totalMcap > 0
                 ? ((coin.marketCap / totalMcap) * 100).toFixed(1)
