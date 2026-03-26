@@ -12,11 +12,19 @@ interface ChainContract {
   address: string;
 }
 
+// Treasury wallets per chain whose balances should be subtracted from totalSupply
+interface TreasuryWallet {
+  chain: string;
+  token: string; // contract address of the token
+  wallet: string; // treasury wallet address
+}
+
 interface StablecoinEntry {
   symbol: string;
   name: string;
   issuer: string;
   contracts: ChainContract[];
+  treasuryWallets?: TreasuryWallet[];
   defillamaId?: string;
   coingeckoId?: string;
 }
@@ -61,8 +69,16 @@ const REGISTRY: StablecoinEntry[] = [
       { chain: "Polygon", address: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc" },
       { chain: "BSC", address: "0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb" },
       { chain: "Avalanche", address: "0x491a4eb4f1fc3bff8e1d2fc856a6a46663ad556f" },
-      // Gnosis 0x0a06c835 is a different token, not Transfero BRZ
       { chain: "Arbitrum", address: "0xA8940698FdA5A07AbAEf4A5ccDf2f1Bb525B47A2" },
+    ],
+    treasuryWallets: [
+      // Transfero treasury (same wallets across chains)
+      { chain: "Polygon", token: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc", wallet: "0x68Aca8008f479637664A185e0Ffb874De2af6A0B" },
+      { chain: "Polygon", token: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc", wallet: "0xf89d7b9c864f589bbF53a82105107622B35EaA40" },
+      { chain: "Ethereum", token: "0x01d33fd36ec67c6ada32cf36b31e88ee190b1839", wallet: "0x68Aca8008f479637664A185e0Ffb874De2af6A0B" },
+      { chain: "Ethereum", token: "0x01d33fd36ec67c6ada32cf36b31e88ee190b1839", wallet: "0xf89d7b9c864f589bbF53a82105107622B35EaA40" },
+      { chain: "Ethereum", token: "0x01d33fd36ec67c6ada32cf36b31e88ee190b1839", wallet: "0xcE98b8D126891b4B406addCd1Fe368772f325E04" },
+      { chain: "Avalanche", token: "0x491a4eb4f1fc3bff8e1d2fc856a6a46663ad556f", wallet: "0xB90B2050C955cd899b9BC8B5C743c25770EBc8AA" },
     ],
   },
   {
@@ -74,6 +90,9 @@ const REGISTRY: StablecoinEntry[] = [
       { chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" },
       { chain: "Moonbeam", address: "0xfeB25F3fDDad13F82C4d6dbc1481516F62236429" },
     ],
+    treasuryWallets: [
+      { chain: "Polygon", token: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb", wallet: "0x2305256fB0a361A4751F6C9A490768F24CccBBA0" },
+    ],
   },
   {
     symbol: "BRLV",
@@ -82,6 +101,7 @@ const REGISTRY: StablecoinEntry[] = [
     contracts: [
       { chain: "Base", address: "0x57323Db6d883811C17877d075e05AD9E2ED41519" },
     ],
+    // No treasury subtraction — proxy 0xd2047 is a functional vault, not issuer treasury
   },
   {
     symbol: "ABRL",
@@ -98,15 +118,13 @@ const REGISTRY: StablecoinEntry[] = [
     contracts: [
       { chain: "Polygon", address: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5" },
     ],
-  },
-  {
-    symbol: "BBRL",
-    name: "BBRL",
-    issuer: "BBRL",
-    contracts: [
-      { chain: "Polygon", address: "0x0B28f768BA2448c402c8A48b03e9dB3dD1eAF84E" },
+    treasuryWallets: [
+      { chain: "Polygon", token: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5", wallet: "0x10E7D149e73daE219bb517De0FcB6A9601BA0f02" },
     ],
   },
+  // BBRL removed — Polygon contract is institutional bridge/distribution only (not organic usage).
+  // XRPL has ~5.7M circulating but requires XRPL-specific integration (not EVM).
+  // TODO: re-add when XRPL integration is built.
   {
     symbol: "BRLC",
     name: "Celo Real",
@@ -161,6 +179,37 @@ async function getTotalSupply(chain: string, address: string): Promise<number | 
   } catch {
     return null;
   }
+}
+
+async function getBalanceOf(
+  chain: string,
+  tokenAddress: string,
+  walletAddress: string
+): Promise<number> {
+  const rpcUrl = RPC_ENDPOINTS[chain];
+  if (!rpcUrl) return 0;
+  try {
+    // balanceOf(address) selector = 0x70a08231 + padded address
+    const paddedAddr = walletAddress.toLowerCase().replace("0x", "").padStart(64, "0");
+    const data = "0x70a08231" + paddedAddr;
+    const result = await rpcCall(rpcUrl, tokenAddress, data);
+    if (result === "0x" || result === "0x0") return 0;
+    const raw = BigInt(result);
+    const decimals = await getDecimals(rpcUrl, tokenAddress);
+    return Number(raw) / 10 ** decimals;
+  } catch {
+    return 0;
+  }
+}
+
+async function getTreasuryBalance(entry: StablecoinEntry): Promise<number> {
+  if (!entry.treasuryWallets || entry.treasuryWallets.length === 0) return 0;
+
+  const promises = entry.treasuryWallets.map((tw) =>
+    getBalanceOf(tw.chain, tw.token, tw.wallet)
+  );
+  const balances = await Promise.all(promises);
+  return balances.reduce((sum, b) => sum + b, 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -262,32 +311,44 @@ export async function fetchAllStablecoins(): Promise<FetchedCoin[]> {
     const chainResults: { chain: string; supply: number }[] = [];
     let totalSupply = 0;
 
-    // Fetch all chains in parallel
-    const chainPromises = entry.contracts.map(async (cc) => {
-      const supply = await getTotalSupply(cc.chain, cc.address);
-      if (supply !== null && supply > 0) {
-        chainResults.push({ chain: cc.chain, supply });
-        totalSupply += supply;
-      }
-    });
-    await Promise.all(chainPromises);
+    // Fetch all chain supplies + treasury balances in parallel
+    const [, treasuryBalance] = await Promise.all([
+      Promise.all(
+        entry.contracts.map(async (cc) => {
+          const supply = await getTotalSupply(cc.chain, cc.address);
+          if (supply !== null && supply > 0) {
+            chainResults.push({ chain: cc.chain, supply });
+            totalSupply += supply;
+          }
+        })
+      ),
+      getTreasuryBalance(entry),
+    ]);
 
-    const priceUsd = entry.coingeckoId === "brz" ? brzPriceUsd : brzPriceUsd; // approximate
+    // Circulating supply = total supply - treasury balance
+    const circulatingSupply = Math.max(0, totalSupply - treasuryBalance);
+
+    const priceUsd = entry.coingeckoId === "brz" ? brzPriceUsd : brzPriceUsd;
     const volume = entry.coingeckoId === "brz" ? brzVolume : 0;
 
-    const chains = chainResults.map((cr) => ({
-      chain: cr.chain,
-      supply: cr.supply,
-      supplyUsd: cr.supply * priceUsd,
-      percentage: totalSupply > 0 ? (cr.supply / totalSupply) * 100 : 0,
-    }));
+    // Recalculate chain supplies proportionally if treasury was subtracted
+    const ratio = totalSupply > 0 ? circulatingSupply / totalSupply : 1;
+    const chains = chainResults.map((cr) => {
+      const adjSupply = cr.supply * ratio;
+      return {
+        chain: cr.chain,
+        supply: adjSupply,
+        supplyUsd: adjSupply * priceUsd,
+        percentage: circulatingSupply > 0 ? (adjSupply / circulatingSupply) * 100 : 0,
+      };
+    });
 
     return {
       symbol: entry.symbol,
       name: entry.name,
       issuer: entry.issuer,
-      totalSupply,
-      marketCapUsd: totalSupply * priceUsd,
+      totalSupply: circulatingSupply,
+      marketCapUsd: circulatingSupply * priceUsd,
       priceUsd,
       priceBrl: 1.0,
       volume24hUsd: volume,
