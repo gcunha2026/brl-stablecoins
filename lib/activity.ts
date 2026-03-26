@@ -1,8 +1,9 @@
 /**
- * Fetch token transfer activity from Blockscout APIs.
- * All data is real on-chain data, nothing estimated.
- * Uses time-bounded fetching to stay within serverless timeouts.
+ * Token activity data - reads from Supabase (backfilled data) with
+ * fallback to Blockscout for tokens not yet in the database.
  */
+
+import { supabase } from "./supabase";
 
 const BLOCKSCOUT_URLS: Record<string, string> = {
   Base: "https://base.blockscout.com/api/v2",
@@ -31,17 +32,6 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
 
 const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 
-// Max time per chain to fetch transfers (in ms)
-// Vercel serverless has 60s max; leave room for processing + counters
-const MAX_FETCH_TIME_MS = 40_000;
-
-interface Transfer {
-  date: string;
-  value: number;
-  from: string;
-  to: string;
-}
-
 export interface DailyActivity {
   date: string;
   mint: number;
@@ -56,75 +46,67 @@ export interface TokenCounters {
   totalTransfers: number;
 }
 
+// In-memory cache
 interface CacheEntry {
   data: { daily: DailyActivity[]; counters: TokenCounters };
   ts: number;
 }
-
 const cache: Record<string, CacheEntry> = {};
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+const CACHE_TTL = 10 * 60 * 1000; // 10 min (DB reads are fast)
 
 // ---------------------------------------------------------------------------
-// Blockscout fetching with time budget
+// Supabase reads
 // ---------------------------------------------------------------------------
 
-async function fetchTransfers(
-  apiBase: string,
-  contractAddress: string,
-  timeBudgetMs: number
-): Promise<Transfer[]> {
-  const all: Transfer[] = [];
-  const url = `${apiBase}/tokens/${contractAddress}/transfers`;
-  let params: Record<string, string> = {};
-  const startTime = Date.now();
-  const MIN_DATE = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-    .toISOString()
-    .slice(0, 10);
+async function readFromSupabase(
+  symbol: string
+): Promise<{ daily: DailyActivity[]; counters: TokenCounters } | null> {
+  if (!supabase) return null;
 
-  for (let page = 0; page < 500; page++) {
-    // Check time budget
-    if (Date.now() - startTime > timeBudgetMs) break;
+  const { data: rows, error } = await supabase
+    .from("daily_activity")
+    .select("date, mint_volume, burn_volume, trade_count, active_wallets, new_wallets")
+    .eq("symbol", symbol.toUpperCase())
+    .order("date", { ascending: true });
 
-    try {
-      const qs = new URLSearchParams(params).toString();
-      const fullUrl = qs ? `${url}?${qs}` : url;
-      const res = await fetch(fullUrl);
-      if (!res.ok) break;
-      const data = await res.json();
-      const items = data.items ?? [];
-      if (items.length === 0) break;
+  if (error || !rows || rows.length === 0) return null;
 
-      let reachedCutoff = false;
-      for (const tx of items) {
-        const from = tx.from?.hash ?? "";
-        const to = tx.to?.hash ?? "";
-        const total = tx.total ?? {};
-        const decimals = parseInt(total.decimals ?? "18", 10);
-        const value = parseInt(total.value ?? "0", 10) / 10 ** decimals;
-        const date = (tx.timestamp ?? "").slice(0, 10);
-        if (!date) continue;
-        if (date < MIN_DATE) { reachedCutoff = true; break; }
-        all.push({ date, value, from: from.toLowerCase(), to: to.toLowerCase() });
-      }
+  const daily: DailyActivity[] = rows.map((r: any) => ({
+    date: r.date,
+    mint: r.mint_volume ?? 0,
+    burn: r.burn_volume ?? 0,
+    trades: r.trade_count ?? 0,
+    newWallets: r.new_wallets ?? 0,
+    activeWallets: r.active_wallets ?? 0,
+  }));
 
-      if (reachedCutoff) break;
-      const np = data.next_page_params;
-      if (!np) break;
-      params = {};
-      for (const [k, v] of Object.entries(np)) params[k] = String(v);
-    } catch {
-      break;
-    }
-  }
+  // Get counters
+  const { data: counter } = await supabase
+    .from("token_counters")
+    .select("holders, total_transfers")
+    .eq("symbol", symbol.toUpperCase())
+    .single();
 
-  return all;
+  const counters: TokenCounters = {
+    holders: counter?.holders ?? 0,
+    totalTransfers: counter?.total_transfers ?? 0,
+  };
+
+  return { daily, counters };
 }
 
-async function fetchCounters(chain: string, contractAddress: string): Promise<TokenCounters> {
+// ---------------------------------------------------------------------------
+// Blockscout fallback (time-limited, for tokens not yet backfilled)
+// ---------------------------------------------------------------------------
+
+async function fetchBlockscoutCounters(
+  chain: string,
+  address: string
+): Promise<TokenCounters> {
   const apiBase = BLOCKSCOUT_URLS[chain];
   if (!apiBase) return { holders: 0, totalTransfers: 0 };
   try {
-    const res = await fetch(`${apiBase}/tokens/${contractAddress}/counters`);
+    const res = await fetch(`${apiBase}/tokens/${address}/counters`);
     if (!res.ok) return { holders: 0, totalTransfers: 0 };
     const data = await res.json();
     return {
@@ -136,55 +118,88 @@ async function fetchCounters(chain: string, contractAddress: string): Promise<To
   }
 }
 
-// ---------------------------------------------------------------------------
-// Processing
-// ---------------------------------------------------------------------------
+async function fetchBlockscoutFallback(
+  symbol: string
+): Promise<{ daily: DailyActivity[]; counters: TokenCounters }> {
+  const contracts = CONTRACTS[symbol.toUpperCase()] ?? [];
+  const MAX_TIME = 40_000;
 
-function processTransfers(transfers: Transfer[]): DailyActivity[] {
-  const dailyMint: Record<string, number> = {};
-  const dailyBurn: Record<string, number> = {};
-  const dailyTrades: Record<string, number> = {};
-  const dailyWallets: Record<string, Set<string>> = {};
+  interface Transfer { date: string; value: number; from: string; to: string }
+  let allTransfers: Transfer[] = [];
+  let totalHolders = 0;
+  let totalTransferCount = 0;
+
+  const timeBudget = Math.floor(MAX_TIME / Math.max(contracts.length, 1));
+
+  for (const { chain, address } of contracts) {
+    const apiBase = BLOCKSCOUT_URLS[chain];
+    if (!apiBase) continue;
+
+    const startTime = Date.now();
+    let params: Record<string, string> = {};
+    const url = `${apiBase}/tokens/${address}/transfers`;
+
+    for (let page = 0; page < 500; page++) {
+      if (Date.now() - startTime > timeBudget) break;
+      try {
+        const qs = new URLSearchParams(params).toString();
+        const fullUrl = qs ? `${url}?${qs}` : url;
+        const res = await fetch(fullUrl);
+        if (!res.ok) break;
+        const data = await res.json();
+        const items = data.items ?? [];
+        if (items.length === 0) break;
+
+        for (const tx of items) {
+          const from = (tx.from?.hash ?? "").toLowerCase();
+          const to = (tx.to?.hash ?? "").toLowerCase();
+          const total = tx.total ?? {};
+          const decimals = parseInt(total.decimals ?? "18", 10);
+          const value = parseInt(total.value ?? "0", 10) / 10 ** decimals;
+          const date = (tx.timestamp ?? "").slice(0, 10);
+          if (date) allTransfers.push({ date, value, from, to });
+        }
+
+        const np = data.next_page_params;
+        if (!np) break;
+        params = {};
+        for (const [k, v] of Object.entries(np)) params[k] = String(v);
+      } catch { break; }
+    }
+
+    const counters = await fetchBlockscoutCounters(chain, address);
+    totalHolders += counters.holders;
+    totalTransferCount += counters.totalTransfers;
+  }
+
+  // Process transfers into daily aggregation
+  const dailyMap: Record<string, { mint: number; burn: number; trades: number; wallets: Set<string>; newW: number }> = {};
   const seenWallets = new Set<string>();
-  const dailyNewWallets: Record<string, number> = {};
-
-  const sorted = [...transfers].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = allTransfers.sort((a, b) => a.date.localeCompare(b.date));
 
   for (const tx of sorted) {
-    const { date, value, from, to } = tx;
-    if (!dailyWallets[date]) dailyWallets[date] = new Set();
-
-    if (from === ZERO_ADDR) {
-      dailyMint[date] = (dailyMint[date] ?? 0) + value;
-      dailyWallets[date].add(to);
-      if (!seenWallets.has(to)) { dailyNewWallets[date] = (dailyNewWallets[date] ?? 0) + 1; seenWallets.add(to); }
-    } else if (to === ZERO_ADDR) {
-      dailyBurn[date] = (dailyBurn[date] ?? 0) + value;
-      dailyWallets[date].add(from);
-      if (!seenWallets.has(from)) { dailyNewWallets[date] = (dailyNewWallets[date] ?? 0) + 1; seenWallets.add(from); }
+    if (!dailyMap[tx.date]) dailyMap[tx.date] = { mint: 0, burn: 0, trades: 0, wallets: new Set(), newW: 0 };
+    const d = dailyMap[tx.date];
+    if (tx.from === ZERO_ADDR) {
+      d.mint += tx.value;
+      d.wallets.add(tx.to);
+      if (!seenWallets.has(tx.to)) { d.newW++; seenWallets.add(tx.to); }
+    } else if (tx.to === ZERO_ADDR) {
+      d.burn += tx.value;
+      d.wallets.add(tx.from);
+      if (!seenWallets.has(tx.from)) { d.newW++; seenWallets.add(tx.from); }
     } else {
-      dailyTrades[date] = (dailyTrades[date] ?? 0) + 1;
-      dailyWallets[date].add(from);
-      dailyWallets[date].add(to);
-      for (const addr of [from, to]) {
-        if (!seenWallets.has(addr)) { dailyNewWallets[date] = (dailyNewWallets[date] ?? 0) + 1; seenWallets.add(addr); }
-      }
+      d.trades++;
+      d.wallets.add(tx.from); d.wallets.add(tx.to);
+      for (const a of [tx.from, tx.to]) { if (!seenWallets.has(a)) { d.newW++; seenWallets.add(a); } }
     }
   }
 
-  const allDates = new Set([
-    ...Object.keys(dailyMint), ...Object.keys(dailyBurn),
-    ...Object.keys(dailyTrades), ...Object.keys(dailyWallets),
-  ]);
-
-  return Array.from(allDates).sort().map((date) => ({
-    date,
-    mint: dailyMint[date] ?? 0,
-    burn: dailyBurn[date] ?? 0,
-    trades: dailyTrades[date] ?? 0,
-    newWallets: dailyNewWallets[date] ?? 0,
-    activeWallets: dailyWallets[date]?.size ?? 0,
+  const daily = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
+    date, mint: d.mint, burn: d.burn, trades: d.trades, newWallets: d.newW, activeWallets: d.wallets.size,
   }));
+
+  return { daily, counters: { holders: totalHolders, totalTransfers: totalTransferCount } };
 }
 
 // ---------------------------------------------------------------------------
@@ -196,41 +211,21 @@ export async function getTokenActivity(
 ): Promise<{ daily: DailyActivity[]; counters: TokenCounters }> {
   const key = symbol.toUpperCase();
 
+  // Check memory cache
   const cached = cache[key];
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return cached.data;
   }
 
-  const contracts = CONTRACTS[key];
-  if (!contracts || contracts.length === 0) {
-    return { daily: [], counters: { holders: 0, totalTransfers: 0 } };
+  // Try Supabase first (fast, full history)
+  const dbResult = await readFromSupabase(key);
+  if (dbResult && dbResult.daily.length > 0) {
+    cache[key] = { data: dbResult, ts: Date.now() };
+    return dbResult;
   }
 
-  // Split time budget across chains
-  const timeBudgetPerChain = Math.floor(MAX_FETCH_TIME_MS / contracts.length);
-
-  let allTransfers: Transfer[] = [];
-  let totalHolders = 0;
-  let totalTransferCount = 0;
-
-  for (const { chain, address } of contracts) {
-    const apiBase = BLOCKSCOUT_URLS[chain];
-    if (!apiBase) continue;
-
-    const [transfers, counters] = await Promise.all([
-      fetchTransfers(apiBase, address, timeBudgetPerChain),
-      fetchCounters(chain, address),
-    ]);
-
-    allTransfers = allTransfers.concat(transfers);
-    totalHolders += counters.holders;
-    totalTransferCount += counters.totalTransfers;
-  }
-
-  const daily = processTransfers(allTransfers);
-  const counters = { holders: totalHolders, totalTransfers: totalTransferCount };
-  const result = { daily, counters };
-
+  // Fallback to Blockscout (slow, limited history)
+  const result = await fetchBlockscoutFallback(key);
   cache[key] = { data: result, ts: Date.now() };
   return result;
 }
