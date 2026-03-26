@@ -10,7 +10,7 @@ from typing import Optional
 # ---------------------------------------------------------------------------
 RPC_ENDPOINTS: dict[str, str] = {
     "Ethereum": "https://eth.llamarpc.com",
-    "Polygon": "https://polygon-rpc.com",
+    "Polygon": "https://polygon-bor-rpc.publicnode.com",
     "BSC": "https://bsc-dataseed1.binance.org",
     "Solana": "https://api.mainnet-beta.solana.com",
     "Celo": "https://forno.celo.org",
@@ -31,6 +31,14 @@ TOTAL_SUPPLY_SELECTOR = "0x18160ddd"
 # ---------------------------------------------------------------------------
 # Stablecoin dataclass
 # ---------------------------------------------------------------------------
+
+XRPL_RPC = "https://xrplcluster.com"
+
+# XRPL issuer addresses for non-EVM tokens
+XRPL_ISSUERS: dict[str, str] = {
+    "BRAZA": "rH5CJsqvNq2GxrMyGaqLEoMWRYcVTAPZMr",
+}
+
 
 @dataclass
 class ChainContract:
@@ -63,7 +71,7 @@ STABLECOIN_REGISTRY: list[StablecoinInfo] = [
         description="Largest BRL-pegged stablecoin, multi-chain.",
         contracts=[
             ChainContract("Ethereum", "0x420412E765BFa6d85aaaC94b4f7b708C89be2e2B"),
-            ChainContract("Polygon", "0x4eD141110F6EeeAbA9A1df36d8c26f684dBDC713"),
+            ChainContract("Polygon", "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc"),
             ChainContract("BSC", "0x71be881e9C5d4465B3FfF61e89c6f3651E69B5bb"),
             ChainContract("Solana", "FtgGSFADXBtroxq8VCausXRr2of47QBf5AS1NtZCu4GD"),
             ChainContract("Base", ""),
@@ -82,12 +90,60 @@ STABLECOIN_REGISTRY: list[StablecoinInfo] = [
         symbol="BRLA",
         name="BRLA Digital",
         issuer="BRLA Digital",
-        defillama_id=None,  # Not on DeFiLlama yet
+        defillama_id=None,
         coingecko_id=None,
-        description="Growing BRL stablecoin on Ethereum and Polygon.",
+        description="Growing BRL stablecoin on multiple chains.",
         contracts=[
             ChainContract("Ethereum", "0x5ec84A2BF1B3843E1256E1BC2E498D83d6071e41"),
-            ChainContract("Polygon", "0xE6A537a407488807F0bbEB0038B64b7a3AC7C17c"),
+            ChainContract("Polygon", "0xE6A537a407488807F0bbeb0038B79004f19DDDFb"),
+            ChainContract("Moonbeam", "0xfeB25F3fDDad13F82C4d6dbc1481516F62236429"),
+            ChainContract("Celo", ""),    # TODO: address truncated in Excel, verify
+            ChainContract("Gnosis", ""),  # TODO: address truncated in Excel, verify
+        ],
+    ),
+    StablecoinInfo(
+        symbol="BRLY",
+        name="Crown (BRLY)",
+        issuer="Crown",
+        defillama_id=None,
+        coingecko_id=None,
+        description="BRL stablecoin on Base. Proof of reserves: https://brl.xyz/reserves",
+        contracts=[
+            ChainContract("Base", "0x57323Db6d883811C17877d075e05AD9E2ED41519"),
+        ],
+    ),
+    StablecoinInfo(
+        symbol="BRAZA",
+        name="BRAZA",
+        issuer="BRAZA",
+        defillama_id=None,
+        coingecko_id=None,
+        description="BRL stablecoin on BNB Chain and XRP Ledger.",
+        contracts=[
+            ChainContract("BSC", ""),  # TODO: address truncated in Excel, verify
+            # XRP Ledger (non-EVM): rH5CJsqvNq2GxrMyGaqLEoMWRYcVTAPZMr
+        ],
+    ),
+    StablecoinInfo(
+        symbol="ABRL",
+        name="ABRL (AMFI)",
+        issuer="AMFI",
+        defillama_id=None,
+        coingecko_id=None,
+        description="BRL stablecoin on Polygon by AMFI.",
+        contracts=[
+            ChainContract("Polygon", "0x5acad7EDCcD4846F99335E26a7e6398D869dEc4f"),
+        ],
+    ),
+    StablecoinInfo(
+        symbol="BRL1",
+        name="BRL1",
+        issuer="Unknown",
+        defillama_id=None,
+        coingecko_id=None,
+        description="BRL stablecoin on Polygon.",
+        contracts=[
+            ChainContract("Polygon", "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5"),
         ],
     ),
     StablecoinInfo(

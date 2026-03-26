@@ -6,10 +6,13 @@ import { Stablecoin } from "@/lib/types";
 import { fetchStablecoins } from "@/lib/api";
 import { formatNumber, formatCurrency } from "@/lib/format";
 
+type ViewMode = "all" | "ex-brz";
+
 export default function DistributionPie() {
   const [data, setData] = useState<Stablecoin[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [view, setView] = useState<ViewMode>("all");
 
   useEffect(() => {
     fetchStablecoins().then((d) => {
@@ -29,13 +32,35 @@ export default function DistributionPie() {
     );
   }
 
-  const totalSupply = data.reduce((sum, s) => sum + s.supply, 0);
+  const filtered =
+    view === "ex-brz"
+      ? data.filter((s) => s.symbol !== "BRZ")
+      : data;
+
+  const totalMcap = filtered.reduce((sum, s) => sum + s.marketCap, 0);
 
   return (
     <div className="bg-card border border-card-border rounded-card p-5 card-hover">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">
-        Supply Distribution
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-text-primary">
+          Market Cap Distribution
+        </h3>
+        <div className="flex gap-1 bg-primary rounded-lg p-0.5">
+          {(["all", "ex-brz"] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => setView(mode)}
+              className={`px-3 py-1 text-xs rounded-md transition-colors ${
+                view === mode
+                  ? "bg-accent-teal/20 text-accent-teal"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              {mode === "all" ? "Todos" : "Ex-BRZ"}
+            </button>
+          ))}
+        </div>
+      </div>
 
       <div className="flex flex-col lg:flex-row items-center gap-4">
         {/* Chart */}
@@ -43,18 +68,18 @@ export default function DistributionPie() {
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={filtered}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
                 outerRadius={100}
                 paddingAngle={3}
-                dataKey="supply"
+                dataKey="marketCap"
                 nameKey="symbol"
                 onMouseEnter={(_, index) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
-                {data.map((entry, index) => (
+                {filtered.map((entry, index) => (
                   <Cell
                     key={entry.symbol}
                     fill={entry.color}
@@ -73,8 +98,8 @@ export default function DistributionPie() {
                   fontSize: "12px",
                 }}
                 formatter={(value: number) => [
-                  formatCurrency(value),
-                  "Supply",
+                  `$${formatNumber(value)}`,
+                  "Market Cap",
                 ]}
               />
             </PieChart>
@@ -83,8 +108,11 @@ export default function DistributionPie() {
 
         {/* Legend */}
         <div className="w-full lg:w-1/2 space-y-2.5">
-          {data.map((coin) => {
-            const pct = ((coin.supply / totalSupply) * 100).toFixed(1);
+          {filtered.map((coin) => {
+            const pct =
+              totalMcap > 0
+                ? ((coin.marketCap / totalMcap) * 100).toFixed(1)
+                : "0.0";
             return (
               <div
                 key={coin.symbol}
@@ -101,7 +129,7 @@ export default function DistributionPie() {
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-text-secondary">
-                    R$ {formatNumber(coin.supply)}
+                    ${formatNumber(coin.marketCap)}
                   </span>
                   <span className="text-xs text-text-muted w-12 text-right">
                     {pct}%

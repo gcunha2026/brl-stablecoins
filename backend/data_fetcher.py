@@ -16,6 +16,8 @@ from config import (
     DEFILLAMA_BRL_PEGTYPE,
     RPC_ENDPOINTS,
     TOTAL_SUPPLY_SELECTOR,
+    XRPL_RPC,
+    XRPL_ISSUERS,
     StablecoinInfo,
 )
 import database as db
@@ -180,6 +182,29 @@ class DataFetcher:
             return 18  # default
 
     # ------------------------------------------------------------------
+    # XRPL - issued amount
+    # ------------------------------------------------------------------
+
+    async def fetch_xrpl_issued_amount(self, issuer_address: str, currency: str = "BRL") -> Optional[float]:
+        """Fetch total issued amount for a token on XRP Ledger via gateway_balances."""
+        client = await self._get_client()
+        payload = {
+            "method": "gateway_balances",
+            "params": [{"account": issuer_address, "ledger_index": "validated"}],
+        }
+        try:
+            resp = await client.post(XRPL_RPC, json=payload)
+            resp.raise_for_status()
+            result = resp.json().get("result", {})
+            obligations = result.get("obligations", {})
+            # obligations is {currency: amount_string}
+            amount_str = obligations.get(currency, "0")
+            return float(amount_str)
+        except Exception as e:
+            logger.error("XRPL gateway_balances for %s failed: %s", issuer_address, e)
+            return None
+
+    # ------------------------------------------------------------------
     # Orchestrator
     # ------------------------------------------------------------------
 
@@ -302,7 +327,7 @@ class DataFetcher:
         logger.info("Processed DeFiLlama: %s (%s) - supply=%.0f", symbol, name, total_supply)
 
     async def _process_rpc_stablecoin(self, info: StablecoinInfo):
-        """For stablecoins not on DeFiLlama, fetch totalSupply via RPC."""
+        """For stablecoins not on DeFiLlama, fetch totalSupply via RPC (EVM + XRPL)."""
         total_supply = 0.0
         chain_data = []
 
@@ -313,6 +338,15 @@ class DataFetcher:
                     total_supply += supply
                     chain_data.append((cc.chain, supply))
                     logger.info("RPC %s on %s: supply=%.0f", info.symbol, cc.chain, supply)
+
+        # Check XRPL issuer for this symbol
+        xrpl_issuer = XRPL_ISSUERS.get(info.symbol)
+        if xrpl_issuer:
+            xrpl_supply = await self.fetch_xrpl_issued_amount(xrpl_issuer)
+            if xrpl_supply is not None and xrpl_supply > 0:
+                total_supply += xrpl_supply
+                chain_data.append(("XRP Ledger", xrpl_supply))
+                logger.info("XRPL %s: supply=%.0f", info.symbol, xrpl_supply)
 
         if total_supply > 0 or True:  # Always upsert to register the stablecoin
             # Rough BRL/USD conversion (BRL stablecoins trade around $0.17-0.20)
