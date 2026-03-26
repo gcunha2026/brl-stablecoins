@@ -58,19 +58,22 @@ interface CacheEntry {
 }
 
 const cache: Record<string, CacheEntry> = {};
-const CACHE_TTL = 10 * 60 * 1000; // 10 min
+const CACHE_TTL = 30 * 60 * 1000; // 30 min (fetching is expensive)
 
 async function fetchAllTransfers(
   apiBase: string,
   contractAddress: string
 ): Promise<Transfer[]> {
   const all: Transfer[] = [];
-  let url = `${apiBase}/tokens/${contractAddress}/transfers`;
+  const url = `${apiBase}/tokens/${contractAddress}/transfers`;
   let params: Record<string, string> = {};
   let pages = 0;
+  const MAX_PAGES = 200; // 200 pages * 50 items = 10k transfers max
+  const MIN_DATE = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .slice(0, 10); // 1 year lookback
 
-  while (pages < 50) {
-    // safety limit
+  while (pages < MAX_PAGES) {
     const qs = new URLSearchParams(params).toString();
     const fullUrl = qs ? `${url}?${qs}` : url;
     const res = await fetch(fullUrl);
@@ -79,6 +82,7 @@ async function fetchAllTransfers(
     const items = data.items ?? [];
     if (items.length === 0) break;
 
+    let reachedCutoff = false;
     for (const tx of items) {
       const from = tx.from?.hash ?? "";
       const to = tx.to?.hash ?? "";
@@ -86,11 +90,15 @@ async function fetchAllTransfers(
       const decimals = parseInt(total.decimals ?? "18", 10);
       const value = parseInt(total.value ?? "0", 10) / 10 ** decimals;
       const date = (tx.timestamp ?? "").slice(0, 10);
-      if (date) {
-        all.push({ date, value, from: from.toLowerCase(), to: to.toLowerCase() });
+      if (!date) continue;
+      if (date < MIN_DATE) {
+        reachedCutoff = true;
+        break;
       }
+      all.push({ date, value, from: from.toLowerCase(), to: to.toLowerCase() });
     }
 
+    if (reachedCutoff) break;
     const nextPage = data.next_page_params;
     if (!nextPage) break;
     params = {};
