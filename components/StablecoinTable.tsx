@@ -1,20 +1,23 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
-import { ChevronUp, ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { Stablecoin } from "@/lib/types";
 import { fetchStablecoins } from "@/lib/api";
 import { formatCurrency, formatNumber, formatPercent } from "@/lib/format";
 import ChainBadge from "./ChainBadge";
 
-type SortKey = "symbol" | "supply" | "marketCap" | "volume24h" | "price" | "change7d";
+type SortKey = "symbol" | "supply" | "marketCap" | "volume24h" | "price";
 type SortDir = "asc" | "desc";
 
-export default function StablecoinTable() {
+interface Props {
+  onSelectCoin?: (symbol: string) => void;
+}
+
+export default function StablecoinTable({ onSelectCoin }: Props) {
   const [data, setData] = useState<Stablecoin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortKey, setSortKey] = useState<SortKey>("supply");
+  const [sortKey, setSortKey] = useState<SortKey>("marketCap");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   useEffect(() => {
@@ -47,7 +50,10 @@ export default function StablecoinTable() {
   });
 
   const SortIcon = ({ col }: { col: SortKey }) => {
-    if (sortKey !== col) return <ChevronDown className="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100" />;
+    if (sortKey !== col)
+      return (
+        <ChevronDown className="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-100" />
+      );
     return sortDir === "asc" ? (
       <ChevronUp className="w-3 h-3 text-accent-teal" />
     ) : (
@@ -57,11 +63,9 @@ export default function StablecoinTable() {
 
   const columns: { key: SortKey; label: string; align?: string }[] = [
     { key: "symbol", label: "Token" },
-    { key: "supply", label: "Supply", align: "right" },
-    { key: "marketCap", label: "Market Cap", align: "right" },
-    { key: "volume24h", label: "24h Volume", align: "right" },
-    { key: "price", label: "Price", align: "right" },
-    { key: "change7d", label: "7d Change", align: "right" },
+    { key: "supply", label: "Supply (BRL)", align: "right" },
+    { key: "marketCap", label: "Market Cap (USD)", align: "right" },
+    { key: "price", label: "Preco (USD)", align: "right" },
   ];
 
   if (loading) {
@@ -80,7 +84,7 @@ export default function StablecoinTable() {
   return (
     <div className="bg-card border border-card-border rounded-card p-5 card-hover">
       <h3 className="text-lg font-semibold text-text-primary mb-4">
-        Stablecoins
+        Stablecoins BRL
       </h3>
 
       <div className="overflow-x-auto">
@@ -108,14 +112,14 @@ export default function StablecoinTable() {
               <th className="pb-3 px-3 text-xs font-medium text-text-muted text-left">
                 Chains
               </th>
-              <th className="pb-3 px-3" />
             </tr>
           </thead>
           <tbody>
             {sorted.map((coin) => (
               <tr
                 key={coin.symbol}
-                className="border-b border-card-border/50 hover:bg-white/[0.02] transition-colors"
+                onClick={() => onSelectCoin?.(coin.symbol)}
+                className="border-b border-card-border/50 hover:bg-accent-teal/5 transition-colors cursor-pointer"
               >
                 {/* Token */}
                 <td className="py-3.5 px-3">
@@ -133,7 +137,9 @@ export default function StablecoinTable() {
                       <div className="text-sm font-semibold text-text-primary">
                         {coin.symbol}
                       </div>
-                      <div className="text-xs text-text-muted">{coin.name}</div>
+                      <div className="text-xs text-text-muted">
+                        {coin.name}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -145,52 +151,26 @@ export default function StablecoinTable() {
 
                 {/* Market Cap */}
                 <td className="py-3.5 px-3 text-right text-sm text-text-primary">
-                  R$ {formatNumber(coin.marketCap)}
-                </td>
-
-                {/* 24h Volume */}
-                <td className="py-3.5 px-3 text-right text-sm text-text-secondary">
-                  R$ {formatNumber(coin.volume24h)}
+                  $ {formatNumber(coin.marketCap)}
                 </td>
 
                 {/* Price */}
                 <td className="py-3.5 px-3 text-right text-sm text-text-primary">
-                  {formatCurrency(coin.price)}
-                </td>
-
-                {/* 7d Change */}
-                <td className="py-3.5 px-3 text-right">
-                  <span
-                    className={`text-sm font-medium ${
-                      coin.change7d >= 0 ? "text-emerald-400" : "text-red-400"
-                    }`}
-                  >
-                    {formatPercent(coin.change7d)}
-                  </span>
+                  $ {coin.price.toFixed(4)}
                 </td>
 
                 {/* Chains */}
                 <td className="py-3.5 px-3">
                   <div className="flex flex-wrap gap-1">
-                    {coin.chains.slice(0, 3).map((chain) => (
+                    {coin.chains.slice(0, 4).map((chain) => (
                       <ChainBadge key={chain} chain={chain} />
                     ))}
-                    {coin.chains.length > 3 && (
+                    {coin.chains.length > 4 && (
                       <span className="text-[10px] text-text-muted px-1">
-                        +{coin.chains.length - 3}
+                        +{coin.chains.length - 4}
                       </span>
                     )}
                   </div>
-                </td>
-
-                {/* Link */}
-                <td className="py-3.5 px-3">
-                  <Link
-                    href={`/stablecoin/${coin.symbol.toLowerCase()}`}
-                    className="p-1.5 rounded-lg hover:bg-white/5 text-text-muted hover:text-accent-teal transition-colors inline-flex"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                  </Link>
                 </td>
               </tr>
             ))}

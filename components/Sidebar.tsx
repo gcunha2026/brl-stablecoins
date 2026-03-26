@@ -7,8 +7,6 @@ import {
   LayoutDashboard,
   Coins,
   BarChart3,
-  ArrowLeftRight,
-  Settings,
   ChevronLeft,
   ChevronRight,
   TrendingUp,
@@ -18,7 +16,6 @@ const navItems = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/#stablecoins", icon: Coins, label: "Stablecoins" },
   { href: "/#charts", icon: BarChart3, label: "Charts" },
-  { href: "/#pools", icon: ArrowLeftRight, label: "Pools" },
 ];
 
 export default function Sidebar() {
@@ -46,7 +43,9 @@ export default function Sidebar() {
       {/* Navigation */}
       <nav className="flex-1 py-4 px-2 space-y-1">
         {navItems.map((item) => {
-          const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href));
+          const isActive =
+            pathname === item.href ||
+            (item.href !== "/" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
@@ -59,10 +58,14 @@ export default function Sidebar() {
             >
               <item.icon
                 className={`w-5 h-5 flex-shrink-0 ${
-                  isActive ? "text-accent-teal" : "text-text-muted group-hover:text-text-primary"
+                  isActive
+                    ? "text-accent-teal"
+                    : "text-text-muted group-hover:text-text-primary"
                 }`}
               />
-              {!collapsed && <span className="text-sm font-medium">{item.label}</span>}
+              {!collapsed && (
+                <span className="text-sm font-medium">{item.label}</span>
+              )}
             </Link>
           );
         })}
@@ -73,7 +76,11 @@ export default function Sidebar() {
         onClick={() => setCollapsed(!collapsed)}
         className="flex items-center justify-center h-12 border-t border-card-border text-text-muted hover:text-text-primary transition-colors"
       >
-        {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        {collapsed ? (
+          <ChevronRight className="w-4 h-4" />
+        ) : (
+          <ChevronLeft className="w-4 h-4" />
+        )}
       </button>
     </aside>
   );
