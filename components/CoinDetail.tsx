@@ -1,6 +1,7 @@
 "use client";
 
-import { ExternalLink, DollarSign, Layers, Link2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { DollarSign, Layers, Users, Link2 } from "lucide-react";
 import {
   PieChart,
   Pie,
@@ -13,6 +14,7 @@ import { formatCurrency, formatNumber } from "@/lib/format";
 import { STABLECOIN_DESCRIPTIONS } from "@/lib/descriptions";
 import ChainBadge from "./ChainBadge";
 import StatCard from "./StatCard";
+import ActivityCharts from "./ActivityCharts";
 
 const CHAIN_COLORS: Record<string, string> = {
   Polygon: "#8247E5",
@@ -30,6 +32,15 @@ interface CoinDetailProps {
 }
 
 export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
+  const [holders, setHolders] = useState<number>(0);
+
+  useEffect(() => {
+    fetch(`/api/stablecoin/${coin.symbol}/activity`)
+      .then((r) => r.json())
+      .then((data) => setHolders(data.counters?.holders ?? 0))
+      .catch(() => {});
+  }, [coin.symbol]);
+
   const info = STABLECOIN_DESCRIPTIONS[coin.symbol] ?? {
     description: "",
     website: "",
@@ -109,9 +120,9 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
           icon={Layers}
         />
         <StatCard
-          title="Preco"
-          value={`$ ${coin.price.toFixed(4)}`}
-          icon={DollarSign}
+          title="Holders"
+          value={holders ? holders.toLocaleString("pt-BR") : "—"}
+          icon={Users}
         />
       </div>
 
@@ -198,6 +209,9 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
           </span>
         </div>
       )}
+
+      {/* Activity Charts */}
+      <ActivityCharts symbol={coin.symbol} />
     </div>
   );
 }
