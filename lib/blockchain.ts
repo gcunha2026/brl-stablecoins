@@ -94,6 +94,7 @@ const REGISTRY: StablecoinEntry[] = [
     issuer: "BRLA Digital / Avenia",
     contracts: [
       { chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" },
+      { chain: "Celo", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
       { chain: "Gnosis", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
       { chain: "Moonbeam", address: "0xfeB25F3fDDad13F82C4d6dbc1481516F62236429" },
       { chain: "Base", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
