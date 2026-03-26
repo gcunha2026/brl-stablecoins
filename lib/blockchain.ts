@@ -19,11 +19,18 @@ interface TreasuryWallet {
   wallet: string; // treasury wallet address
 }
 
+// XRPL token config (non-EVM)
+interface XrplToken {
+  issuer: string;     // XRPL issuer address
+  currency: string;   // currency code (e.g. "BBRL")
+}
+
 interface StablecoinEntry {
   symbol: string;
   name: string;
   issuer: string;
   contracts: ChainContract[];
+  xrpl?: XrplToken;
   treasuryWallets?: TreasuryWallet[];
   defillamaId?: string;
   coingeckoId?: string;
@@ -122,9 +129,16 @@ const REGISTRY: StablecoinEntry[] = [
       { chain: "Polygon", token: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5", wallet: "0x10E7D149e73daE219bb517De0FcB6A9601BA0f02" },
     ],
   },
-  // BBRL removed — Polygon contract is institutional bridge/distribution only (not organic usage).
-  // XRPL has ~5.7M circulating but requires XRPL-specific integration (not EVM).
-  // TODO: re-add when XRPL integration is built.
+  {
+    symbol: "BBRL",
+    name: "BBRL",
+    issuer: "Braza Bank",
+    contracts: [], // Polygon is institutional bridge only, not included
+    xrpl: {
+      issuer: "rP1rFtLizETzwySJQTRKzLk7F5ZH7NmPqv",
+      currency: "BBRL",
+    },
+  },
   {
     symbol: "BRLC",
     name: "Celo Real",
@@ -210,6 +224,71 @@ async function getTreasuryBalance(entry: StablecoinEntry): Promise<number> {
   );
   const balances = await Promise.all(promises);
   return balances.reduce((sum, b) => sum + b, 0);
+}
+
+// ---------------------------------------------------------------------------
+// XRPL helpers
+// ---------------------------------------------------------------------------
+
+const XRPL_RPC = "https://xrplcluster.com";
+
+async function getXrplCirculatingSupply(
+  issuer: string,
+  currency: string
+): Promise<{ supply: number; holders: number }> {
+  try {
+    // Paginate through all trust lines for this issuer
+    let allLines: any[] = [];
+    let marker: any = undefined;
+
+    do {
+      const params: any = {
+        account: issuer,
+        ledger_index: "validated",
+        limit: 400,
+      };
+      if (marker) params.marker = marker;
+
+      const res = await fetch(XRPL_RPC, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "account_lines", params: [params] }),
+      });
+      const json = await res.json();
+      const result = json.result ?? {};
+      const lines = result.lines ?? [];
+      allLines = allLines.concat(lines);
+      marker = result.marker;
+    } while (marker);
+
+    // Filter for the target currency
+    // XRPL currency codes can be 3-char or 40-char hex
+    const targetHex = Buffer.from(currency.padEnd(20, "\0")).toString("hex");
+
+    let totalCirculating = 0;
+    let holderCount = 0;
+
+    for (const line of allLines) {
+      const lineCurrency = line.currency ?? "";
+      const isMatch =
+        lineCurrency === currency ||
+        lineCurrency.toLowerCase() === targetHex.toLowerCase();
+
+      if (!isMatch) continue;
+
+      // From issuer perspective: positive balance = peer holds tokens
+      // (issuer owes them), negative = issuer holds tokens from peer
+      const balance = parseFloat(line.balance ?? "0");
+      if (balance > 0) {
+        totalCirculating += balance;
+        holderCount++;
+      }
+    }
+
+    return { supply: totalCirculating, holders: holderCount };
+  } catch {
+    return { supply: 0, holders: 0 };
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -311,8 +390,8 @@ export async function fetchAllStablecoins(): Promise<FetchedCoin[]> {
     const chainResults: { chain: string; supply: number }[] = [];
     let totalSupply = 0;
 
-    // Fetch all chain supplies + treasury balances in parallel
-    const [, treasuryBalance] = await Promise.all([
+    // Fetch EVM chain supplies + treasury balances + XRPL in parallel
+    const [, treasuryBalance, xrplData] = await Promise.all([
       Promise.all(
         entry.contracts.map(async (cc) => {
           const supply = await getTotalSupply(cc.chain, cc.address);
@@ -323,18 +402,31 @@ export async function fetchAllStablecoins(): Promise<FetchedCoin[]> {
         })
       ),
       getTreasuryBalance(entry),
+      entry.xrpl
+        ? getXrplCirculatingSupply(entry.xrpl.issuer, entry.xrpl.currency)
+        : Promise.resolve({ supply: 0, holders: 0 }),
     ]);
 
-    // Circulating supply = total supply - treasury balance
-    const circulatingSupply = Math.max(0, totalSupply - treasuryBalance);
+    // Add XRPL supply if present
+    if (xrplData.supply > 0) {
+      chainResults.push({ chain: "XRPL", supply: xrplData.supply });
+      totalSupply += xrplData.supply;
+    }
+
+    // Circulating supply = total EVM supply - treasury + XRPL (XRPL is already circulating)
+    const evmSupply = chainResults
+      .filter((c) => c.chain !== "XRPL")
+      .reduce((s, c) => s + c.supply, 0);
+    const evmCirculating = Math.max(0, evmSupply - treasuryBalance);
+    const circulatingSupply = evmCirculating + xrplData.supply;
 
     const priceUsd = entry.coingeckoId === "brz" ? brzPriceUsd : brzPriceUsd;
     const volume = entry.coingeckoId === "brz" ? brzVolume : 0;
 
-    // Recalculate chain supplies proportionally if treasury was subtracted
-    const ratio = totalSupply > 0 ? circulatingSupply / totalSupply : 1;
+    // Recalculate EVM chain supplies proportionally if treasury was subtracted
+    const evmRatio = evmSupply > 0 ? evmCirculating / evmSupply : 1;
     const chains = chainResults.map((cr) => {
-      const adjSupply = cr.supply * ratio;
+      const adjSupply = cr.chain === "XRPL" ? cr.supply : cr.supply * evmRatio;
       return {
         chain: cr.chain,
         supply: adjSupply,
