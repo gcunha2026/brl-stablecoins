@@ -44,7 +44,7 @@ export default function SupplyChart() {
     <div className="bg-card border border-card-border rounded-card p-5 card-hover">
       <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <h3 className="text-lg font-semibold text-text-primary">
-          Total Supply Over Time
+          Supply Total (BRL)
         </h3>
         <PeriodSelector selected={period} onChange={setPeriod} />
       </div>

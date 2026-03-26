@@ -104,7 +104,7 @@ export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
           icon={DollarSign}
         />
         <StatCard
-          title="Supply"
+          title="Supply (BRL)"
           value={formatNumber(coin.supply)}
           icon={Layers}
         />

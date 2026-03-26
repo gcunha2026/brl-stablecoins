@@ -63,7 +63,7 @@ export default function StablecoinTable({ onSelectCoin }: Props) {
 
   const columns: { key: SortKey; label: string; align?: string }[] = [
     { key: "symbol", label: "Token" },
-    { key: "supply", label: "Supply", align: "right" },
+    { key: "supply", label: "Supply (BRL)", align: "right" },
     { key: "marketCap", label: "Market Cap (USD)", align: "right" },
     { key: "price", label: "Preco (USD)", align: "right" },
   ];

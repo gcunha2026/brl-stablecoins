@@ -38,7 +38,7 @@ export default function ChainBreakdown() {
   return (
     <div className="bg-card border border-card-border rounded-card p-5 card-hover">
       <h3 className="text-lg font-semibold text-text-primary mb-4">
-        Supply by Chain
+        Supply por Chain (BRL)
       </h3>
 
       <div className="h-[300px]">

@@ -95,7 +95,7 @@ export default function DashboardPage() {
               loading={loading}
             />
             <StatCard
-              title="Supply Total (tokens)"
+              title="Supply Total (BRL)"
               value={
                 overview
                   ? formatNumber(overview.totalSupply)
