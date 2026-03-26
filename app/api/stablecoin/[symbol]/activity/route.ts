@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getTokenActivity } from "@/lib/activity";
 
-export const revalidate = 600; // 10 min
+export const revalidate = 600; // 10 min ISR
+export const maxDuration = 60; // 60s timeout (Vercel Pro)
 
 export async function GET(
   _req: NextRequest,
