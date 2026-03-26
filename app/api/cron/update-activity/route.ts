@@ -14,6 +14,7 @@ const BLOCKSCOUT_V1: Record<string, string> = {
   Polygon: "https://polygon.blockscout.com/api",
   Ethereum: "https://eth.blockscout.com/api",
   Celo: "https://celo.blockscout.com/api",
+  Avalanche: "https://avalanche.blockscout.com/api",
   Gnosis: "https://gnosis.blockscout.com/api",
   Arbitrum: "https://arbitrum.blockscout.com/api",
 };

@@ -41,6 +41,7 @@ const CHAIN_COLORS: Record<string, string> = {
   Gnosis: "#04795B",
   Solana: "#9945FF",
   Arbitrum: "#28A0F0",
+  Avalanche: "#E84142",
 };
 
 function apiBase(): string {
