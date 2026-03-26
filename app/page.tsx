@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DollarSign, Layers, Activity, BarChart3 } from "lucide-react";
 import { OverviewData, Stablecoin } from "@/lib/types";
-import { fetchOverview, fetchStablecoins, fetchChains } from "@/lib/api";
-import { formatCurrency, formatNumber } from "@/lib/format";
+import { fetchOverview, fetchStablecoins } from "@/lib/api";
+import { formatNumber } from "@/lib/format";
 import StatCard from "@/components/StatCard";
 import DistributionPie from "@/components/DistributionPie";
 import StablecoinTable from "@/components/StablecoinTable";
@@ -15,25 +15,29 @@ interface CoinWithChains extends Stablecoin {
   chainBreakdown: { chain: string; supply: number; percentage: number }[];
 }
 
+interface ActivityCache {
+  daily: any[];
+  counters: { holders: number; totalTransfers: number };
+}
+
 export default function DashboardPage() {
   const [overview, setOverview] = useState<OverviewData | null>(null);
   const [coins, setCoins] = useState<CoinWithChains[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("consolidado");
+  const [activityCache, setActivityCache] = useState<Record<string, ActivityCache>>({});
+  const prefetchStarted = useRef(false);
 
   useEffect(() => {
     Promise.all([fetchOverview(), fetchStablecoins()]).then(
       ([ov, stablecoins]) => {
         setOverview(ov);
 
-        // Build chain breakdown from the raw API data
         fetch("/api/stablecoins")
           .then((r) => r.json())
           .then((raw: any[]) => {
             const merged: CoinWithChains[] = stablecoins.map((coin) => {
-              const rawCoin = raw.find(
-                (r: any) => r.symbol === coin.symbol
-              );
+              const rawCoin = raw.find((r: any) => r.symbol === coin.symbol);
               const chains = (rawCoin?.chains ?? []).map((ch: any) => ({
                 chain: ch.chain,
                 supply: ch.supply,
@@ -43,11 +47,25 @@ export default function DashboardPage() {
             });
             setCoins(merged);
             setLoading(false);
+
+            // Pre-fetch activity for all coins in background
+            if (!prefetchStarted.current) {
+              prefetchStarted.current = true;
+              for (const coin of merged) {
+                fetch(`/api/stablecoin/${coin.symbol}/activity`)
+                  .then((r) => r.json())
+                  .then((data) => {
+                    setActivityCache((prev) => ({
+                      ...prev,
+                      [coin.symbol]: data,
+                    }));
+                  })
+                  .catch(() => {});
+              }
+            }
           })
           .catch(() => {
-            setCoins(
-              stablecoins.map((c) => ({ ...c, chainBreakdown: [] }))
-            );
+            setCoins(stablecoins.map((c) => ({ ...c, chainBreakdown: [] })));
             setLoading(false);
           });
       }
@@ -83,24 +101,17 @@ export default function DashboardPage() {
       {/* Consolidated View */}
       {activeTab === "consolidado" && (
         <>
-          {/* Overview Cards */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard
               title="Market Cap Total"
-              value={
-                overview ? `$ ${formatNumber(overview.totalMarketCap)}` : "---"
-              }
+              value={overview ? `$ ${formatNumber(overview.totalMarketCap)}` : "---"}
               change={overview?.marketCapChange24h}
               icon={DollarSign}
               loading={loading}
             />
             <StatCard
               title="Supply Total (BRL)"
-              value={
-                overview
-                  ? formatNumber(overview.totalSupply)
-                  : "---"
-              }
+              value={overview ? formatNumber(overview.totalSupply) : "---"}
               change={overview?.supplyChange24h}
               icon={Layers}
               loading={loading}
@@ -113,24 +124,18 @@ export default function DashboardPage() {
             />
             <StatCard
               title="Volume 24h"
-              value={
-                overview
-                  ? `$ ${formatNumber(overview.volume24h)}`
-                  : "---"
-              }
+              value={overview ? `$ ${formatNumber(overview.volume24h)}` : "---"}
               change={overview?.volumeChange24h}
               icon={Activity}
               loading={loading}
             />
           </section>
 
-          {/* Charts Row */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <DistributionPie />
             <ChainBreakdown />
           </section>
 
-          {/* Stablecoins Table */}
           <section>
             <StablecoinTable onSelectCoin={(symbol) => setActiveTab(symbol)} />
           </section>
@@ -142,6 +147,7 @@ export default function DashboardPage() {
         <CoinDetail
           coin={activeCoin}
           chainBreakdown={activeCoin.chainBreakdown}
+          prefetchedActivity={activityCache[activeCoin.symbol] ?? null}
         />
       )}
     </div>

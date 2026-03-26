@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { DollarSign, Layers, Users, Link2 } from "lucide-react";
 import {
   PieChart,
@@ -26,31 +25,20 @@ const CHAIN_COLORS: Record<string, string> = {
   Gnosis: "#04795B",
 };
 
-interface CoinDetailProps {
-  coin: Stablecoin;
-  chainBreakdown: { chain: string; supply: number; percentage: number }[];
-}
-
 interface ActivityData {
   daily: any[];
   counters: { holders: number; totalTransfers: number };
 }
 
-export default function CoinDetail({ coin, chainBreakdown }: CoinDetailProps) {
-  const [holders, setHolders] = useState<number>(0);
-  const [activityData, setActivityData] = useState<ActivityData | null>(null);
+interface CoinDetailProps {
+  coin: Stablecoin;
+  chainBreakdown: { chain: string; supply: number; percentage: number }[];
+  prefetchedActivity?: ActivityData | null;
+}
 
-  useEffect(() => {
-    setActivityData(null);
-    setHolders(0);
-    fetch(`/api/stablecoin/${coin.symbol}/activity`)
-      .then((r) => r.json())
-      .then((data) => {
-        setHolders(data.counters?.holders ?? 0);
-        setActivityData(data);
-      })
-      .catch(() => {});
-  }, [coin.symbol]);
+export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }: CoinDetailProps) {
+  const holders = prefetchedActivity?.counters?.holders ?? 0;
+  const activityData = prefetchedActivity ?? null;
 
   const info = STABLECOIN_DESCRIPTIONS[coin.symbol] ?? {
     description: "",
