@@ -62,7 +62,7 @@ const RPC_ENDPOINTS: Record<string, string> = {
   Base: "https://mainnet.base.org",
   Moonbeam: "https://rpc.api.moonbeam.network",
   Arbitrum: "https://arb1.arbitrum.io/rpc",
-  XDC: "https://erpc.xinfin.network",
+  XDC: "https://rpc.ankr.com/xdc",
 };
 
 const REGISTRY: StablecoinEntry[] = [
@@ -164,6 +164,16 @@ const REGISTRY: StablecoinEntry[] = [
 // RPC helpers
 // ---------------------------------------------------------------------------
 
+// Fallback RPCs for chains with unreliable primary
+const FALLBACK_RPCS: Record<string, string[]> = {
+  XDC: [
+    "https://rpc.ankr.com/xdc",
+    "https://erpc.xinfin.network",
+    "https://rpc.xdc.org",
+    "https://rpc1.xinfin.network",
+  ],
+};
+
 async function rpcCall(rpcUrl: string, to: string, data: string): Promise<string> {
   const res = await fetch(rpcUrl, {
     method: "POST",
@@ -190,20 +200,27 @@ async function getDecimals(rpcUrl: string, address: string): Promise<number> {
 }
 
 async function getTotalSupply(chain: string, address: string): Promise<number | null> {
-  const rpcUrl = RPC_ENDPOINTS[chain];
-  if (!rpcUrl || !address) return null;
+  // Try primary RPC first, then fallbacks
+  const rpcsToTry = [
+    RPC_ENDPOINTS[chain],
+    ...(FALLBACK_RPCS[chain] ?? []),
+  ].filter(Boolean);
 
-  try {
-    const [supplyHex, decimals] = await Promise.all([
-      rpcCall(rpcUrl, address, "0x18160ddd"),
-      getDecimals(rpcUrl, address),
-    ]);
-    if (supplyHex === "0x" || supplyHex === "0x0") return null;
-    const raw = BigInt(supplyHex);
-    return Number(raw) / 10 ** decimals;
-  } catch {
-    return null;
+  for (const rpcUrl of rpcsToTry) {
+    try {
+      const [supplyHex, decimals] = await Promise.all([
+        rpcCall(rpcUrl, address, "0x18160ddd"),
+        getDecimals(rpcUrl, address),
+      ]);
+      if (supplyHex === "0x" || supplyHex === "0x0") continue;
+      const raw = BigInt(supplyHex);
+      const supply = Number(raw) / 10 ** decimals;
+      if (supply > 0) return supply;
+    } catch {
+      continue;
+    }
   }
+  return null;
 }
 
 async function getBalanceOf(
