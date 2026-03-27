@@ -62,7 +62,7 @@ const RPC_ENDPOINTS: Record<string, string> = {
   Base: "https://mainnet.base.org",
   Moonbeam: "https://rpc.api.moonbeam.network",
   Arbitrum: "https://arb1.arbitrum.io/rpc",
-  XDC: "https://rpc.xinfin.network",
+  XDC: "https://erpc.xinfin.network",
 };
 
 const REGISTRY: StablecoinEntry[] = [
