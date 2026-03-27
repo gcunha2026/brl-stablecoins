@@ -62,6 +62,7 @@ const RPC_ENDPOINTS: Record<string, string> = {
   Base: "https://mainnet.base.org",
   Moonbeam: "https://rpc.api.moonbeam.network",
   Arbitrum: "https://arb1.arbitrum.io/rpc",
+  XDC: "https://rpc.xinfin.network",
 };
 
 const REGISTRY: StablecoinEntry[] = [
@@ -129,6 +130,14 @@ const REGISTRY: StablecoinEntry[] = [
     ],
     treasuryWallets: [
       { chain: "Polygon", token: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5", wallet: "0x10E7D149e73daE219bb517De0FcB6A9601BA0f02" },
+    ],
+  },
+  {
+    symbol: "BRLD",
+    name: "Brazil Real Digital",
+    issuer: "Liqi",
+    contracts: [
+      { chain: "XDC", address: "0xfb67c0ca9366e5ae08ffed2f00de59d7e0537dfb" },
     ],
   },
   {

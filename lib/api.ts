@@ -23,6 +23,7 @@ const COIN_COLORS: Record<string, string> = {
   ABRL: "#8b5cf6",
   BRL1: "#ef4444",
   BRAZA: "#06b6d4",
+  BRLD: "#0ea5e9",
   BBRL: "#10b981",
   BRLC: "#ec4899",
   BRLx: "#14b8a6",
@@ -42,6 +43,7 @@ const CHAIN_COLORS: Record<string, string> = {
   Solana: "#9945FF",
   Arbitrum: "#28A0F0",
   Avalanche: "#E84142",
+  XDC: "#1B6DF0",
 };
 
 function apiBase(): string {

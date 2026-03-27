@@ -30,6 +30,12 @@ export const STABLECOIN_DESCRIPTIONS: Record<string, { description: string; webs
     website: "",
     issuer: "",
   },
+  BRLD: {
+    description:
+      "Stablecoin institucional brasileira pareada 1:1 ao real, com lastro em titulos do Tesouro Nacional. Auditoria on-chain. Operando na rede XDC.",
+    website: "https://www.stablebrld.com",
+    issuer: "Liqi",
+  },
   BBRL: {
     description:
       "Stablecoin de Real na rede Polygon.",
