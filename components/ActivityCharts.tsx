@@ -26,7 +26,13 @@ interface DailyActivity {
 
 interface Props {
   symbol: string;
-  prefetchedData?: { daily: DailyActivity[]; counters: any } | null;
+  chains?: string[];
+  prefetchedData?: {
+    daily: DailyActivity[];
+    byChain?: Record<string, DailyActivity[]>;
+    chains?: string[];
+    counters: any;
+  } | null;
 }
 
 const PERIOD_LABELS: Record<Period, string> = {
@@ -35,6 +41,18 @@ const PERIOD_LABELS: Record<Period, string> = {
   ytd: "YTD",
   yearly: "1Y",
   all: "All",
+};
+
+const CHAIN_COLORS: Record<string, string> = {
+  Polygon: "#8247E5",
+  Base: "#0052FF",
+  Ethereum: "#627EEA",
+  BSC: "#F3BA2F",
+  Celo: "#35D07F",
+  Moonbeam: "#53CBC8",
+  Gnosis: "#04795B",
+  Arbitrum: "#28A0F0",
+  Avalanche: "#E84142",
 };
 
 function filterByPeriod(data: DailyActivity[], period: Period): DailyActivity[] {
@@ -85,6 +103,49 @@ function PeriodSelector({
   );
 }
 
+function ChainSelector({
+  chains,
+  selected,
+  onChange,
+}: {
+  chains: string[];
+  selected: string;
+  onChange: (chain: string) => void;
+}) {
+  return (
+    <div className="flex gap-1.5 flex-wrap">
+      <button
+        onClick={() => onChange("ALL")}
+        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+          selected === "ALL"
+            ? "bg-accent-teal/20 text-accent-teal border-accent-teal/40"
+            : "text-text-secondary border-card-border hover:text-text-primary hover:border-text-muted"
+        }`}
+      >
+        Todas
+      </button>
+      {chains.map((chain) => (
+        <button
+          key={chain}
+          onClick={() => onChange(chain)}
+          className={`px-3 py-1 text-xs rounded-full border transition-colors flex items-center gap-1.5 ${
+            selected === chain
+              ? "border-current text-text-primary"
+              : "text-text-secondary border-card-border hover:text-text-primary hover:border-text-muted"
+          }`}
+          style={selected === chain ? { color: CHAIN_COLORS[chain] ?? "#94a3b8" } : undefined}
+        >
+          <span
+            className="w-2 h-2 rounded-full inline-block"
+            style={{ backgroundColor: CHAIN_COLORS[chain] ?? "#94a3b8" }}
+          />
+          {chain}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function ChartCard({
   title,
   children,
@@ -114,8 +175,11 @@ const tooltipStyle = {
   fontSize: "12px",
 };
 
-export default function ActivityCharts({ symbol, prefetchedData }: Props) {
+export default function ActivityCharts({ symbol, chains, prefetchedData }: Props) {
   const [data, setData] = useState<DailyActivity[]>([]);
+  const [byChain, setByChain] = useState<Record<string, DailyActivity[]>>({});
+  const [availableChains, setAvailableChains] = useState<string[]>([]);
+  const [selectedChain, setSelectedChain] = useState<string>("ALL");
   const [loading, setLoading] = useState(true);
   const [mintPeriod, setMintPeriod] = useState<Period>("all");
   const [tradesPeriod, setTradesPeriod] = useState<Period>("all");
@@ -124,15 +188,30 @@ export default function ActivityCharts({ symbol, prefetchedData }: Props) {
   useEffect(() => {
     if (prefetchedData) {
       setData(prefetchedData.daily ?? []);
+      setByChain(prefetchedData.byChain ?? {});
+      setAvailableChains(prefetchedData.chains ?? chains ?? []);
       setLoading(false);
     } else {
       setLoading(true);
     }
-  }, [prefetchedData]);
+  }, [prefetchedData, chains]);
 
-  const mintData = useMemo(() => filterByPeriod(data, mintPeriod), [data, mintPeriod]);
-  const tradesData = useMemo(() => filterByPeriod(data, tradesPeriod), [data, tradesPeriod]);
-  const walletsData = useMemo(() => filterByPeriod(data, walletsPeriod), [data, walletsPeriod]);
+  // Reset chain selection when symbol changes
+  useEffect(() => {
+    setSelectedChain("ALL");
+  }, [symbol]);
+
+  // Active data based on chain selection
+  const activeData = useMemo(() => {
+    if (selectedChain === "ALL") return data;
+    return byChain[selectedChain] ?? [];
+  }, [selectedChain, data, byChain]);
+
+  const mintData = useMemo(() => filterByPeriod(activeData, mintPeriod), [activeData, mintPeriod]);
+  const tradesData = useMemo(() => filterByPeriod(activeData, tradesPeriod), [activeData, tradesPeriod]);
+  const walletsData = useMemo(() => filterByPeriod(activeData, walletsPeriod), [activeData, walletsPeriod]);
+
+  const showChainSelector = availableChains.length > 1;
 
   if (loading) {
     return (
@@ -157,6 +236,20 @@ export default function ActivityCharts({ symbol, prefetchedData }: Props) {
 
   return (
     <div className="space-y-4">
+      {/* Chain Selector */}
+      {showChainSelector && (
+        <div className="bg-card border border-card-border rounded-card p-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-xs text-text-muted font-medium uppercase tracking-wide">Chain:</span>
+            <ChainSelector
+              chains={availableChains}
+              selected={selectedChain}
+              onChange={setSelectedChain}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Mint/Burn Chart */}
       <ChartCard title="Mint / Burn" period={mintPeriod} onPeriodChange={setMintPeriod}>
         <ResponsiveContainer width="100%" height="100%">

@@ -56,7 +56,11 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
   ],
   BRLA: [
     { chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" },
-    // Moonbeam Blockscout has no working API; BRLA on Moonbeam is <1% of supply
+    { chain: "Celo", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
+    { chain: "Gnosis", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
+    { chain: "Base", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
+    { chain: "Ethereum", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
+    // Moonbeam excluded: Blockscout API unreliable, <1% of supply
   ],
   ABRL: [{ chain: "Polygon", address: "0x5acad7EDCcD4846F99335E26a7e6398D869dEc4f" }],
   BRL1: [{ chain: "Polygon", address: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5" }],

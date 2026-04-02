@@ -5,6 +5,7 @@
 CREATE TABLE IF NOT EXISTS daily_activity (
   id BIGSERIAL PRIMARY KEY,
   symbol TEXT NOT NULL,
+  chain TEXT NOT NULL DEFAULT 'ALL',
   date DATE NOT NULL,
   mint_count INTEGER DEFAULT 0,
   mint_volume NUMERIC DEFAULT 0,
@@ -14,12 +15,12 @@ CREATE TABLE IF NOT EXISTS daily_activity (
   active_wallets INTEGER DEFAULT 0,
   new_wallets INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(symbol, date)
+  UNIQUE(symbol, chain, date)
 );
 
--- Index for fast queries by symbol + date range
-CREATE INDEX IF NOT EXISTS idx_daily_activity_symbol_date
-  ON daily_activity(symbol, date DESC);
+-- Index for fast queries by symbol + chain + date range
+CREATE INDEX IF NOT EXISTS idx_daily_activity_symbol_chain_date
+  ON daily_activity(symbol, chain, date DESC);
 
 -- Track backfill progress per token/chain
 CREATE TABLE IF NOT EXISTS backfill_progress (
@@ -78,6 +79,9 @@ CREATE POLICY "Allow service_role write on daily_activity"
   TO service_role
   USING (true)
   WITH CHECK (true);
+
+-- Update RLS policy for new unique constraint
+-- (no change needed — policies use row-level checks, not constraint-level)
 
 -- backfill_progress policies
 CREATE POLICY "Allow public read on backfill_progress"

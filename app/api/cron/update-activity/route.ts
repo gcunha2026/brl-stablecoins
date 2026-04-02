@@ -25,7 +25,13 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
     { chain: "Polygon", address: "0x4eD141110F6EeeAbA9A1df36d8c26f684d2475Dc" },
     { chain: "Arbitrum", address: "0xA8940698FdA5A07AbAEf4A5ccDf2f1Bb525B47A2" },
   ],
-  BRLA: [{ chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" }],
+  BRLA: [
+    { chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" },
+    { chain: "Celo", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
+    { chain: "Gnosis", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
+    { chain: "Base", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
+    { chain: "Ethereum", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
+  ],
   ABRL: [{ chain: "Polygon", address: "0x5acad7EDCcD4846F99335E26a7e6398D869dEc4f" }],
   BRL1: [{ chain: "Polygon", address: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5" }],
   BRLC: [{ chain: "Celo", address: "0xe8537a3d056DA446677B9E9d6c5dB704EaAb4787" }],
@@ -51,12 +57,16 @@ export async function GET(req: NextRequest) {
   const results: Record<string, string> = {};
 
   for (const [symbol, contracts] of Object.entries(CONTRACTS)) {
+    // Load known wallets for new_wallets calculation
+    const { data: existingWallets } = await supabase
+      .from("known_wallets").select("wallet").eq("symbol", symbol);
+    const knownWallets = new Set((existingWallets ?? []).map((w: any) => w.wallet));
+
     for (const { chain, address } of contracts) {
       const apiBase = BLOCKSCOUT_V1[chain];
       if (!apiBase) continue;
 
       try {
-        // Fetch latest 10k transfers (covers ~1-5 days for most tokens)
         const url = `${apiBase}?module=account&action=tokentx&contractaddress=${address}&page=1&offset=10000&sort=desc`;
         const res = await fetch(url);
         let json: any;
@@ -64,7 +74,7 @@ export async function GET(req: NextRequest) {
         const items = json.result;
         if (!Array.isArray(items) || items.length === 0) continue;
 
-        // Aggregate by day
+        // Aggregate by day — per chain
         const dailyMap: Record<string, {
           mint_count: number; mint_volume: number;
           burn_count: number; burn_volume: number;
@@ -97,17 +107,38 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Upsert into Supabase
-        const rows = Object.entries(dailyMap).map(([date, d]) => ({
-          symbol, date,
-          mint_count: d.mint_count, mint_volume: d.mint_volume,
-          burn_count: d.burn_count, burn_volume: d.burn_volume,
-          trade_count: d.trade_count,
-          active_wallets: d.wallets.size,
-          new_wallets: 0,
-        }));
+        // Compute new_wallets and upsert per-chain rows
+        const rows = Object.entries(dailyMap).map(([date, d]) => {
+          let newCount = 0;
+          d.wallets.forEach((w) => {
+            if (!knownWallets.has(w)) { newCount++; knownWallets.add(w); }
+          });
+          return {
+            symbol, chain, date,
+            mint_count: d.mint_count, mint_volume: d.mint_volume,
+            burn_count: d.burn_count, burn_volume: d.burn_volume,
+            trade_count: d.trade_count,
+            active_wallets: d.wallets.size,
+            new_wallets: newCount,
+          };
+        });
 
-        await supabase.from("daily_activity").upsert(rows, { onConflict: "symbol,date" });
+        await supabase.from("daily_activity").upsert(rows, { onConflict: "symbol,chain,date" });
+
+        // Save new wallets to known_wallets table
+        const walletRows: { symbol: string; wallet: string; first_seen: string }[] = [];
+        for (const [date, d] of Object.entries(dailyMap)) {
+          d.wallets.forEach((w) => {
+            walletRows.push({ symbol, wallet: w, first_seen: date });
+          });
+        }
+        for (let i = 0; i < walletRows.length; i += 500) {
+          await supabase.from("known_wallets").upsert(
+            walletRows.slice(i, i + 500),
+            { onConflict: "symbol,wallet", ignoreDuplicates: true }
+          );
+        }
+
         results[`${symbol}/${chain}`] = `${items.length} transfers, ${Object.keys(dailyMap).length} days`;
       } catch {
         results[`${symbol}/${chain}`] = "error";

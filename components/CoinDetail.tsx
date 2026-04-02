@@ -27,6 +27,8 @@ const CHAIN_COLORS: Record<string, string> = {
 
 interface ActivityData {
   daily: any[];
+  byChain?: Record<string, any[]>;
+  chains?: string[];
   counters: { holders: number; totalTransfers: number };
 }
 
@@ -210,7 +212,11 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
       )}
 
       {/* Activity Charts */}
-      <ActivityCharts symbol={coin.symbol} prefetchedData={activityData} />
+      <ActivityCharts
+        symbol={coin.symbol}
+        chains={coin.chains}
+        prefetchedData={activityData}
+      />
     </div>
   );
 }

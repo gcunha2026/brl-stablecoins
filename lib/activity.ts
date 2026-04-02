@@ -30,7 +30,10 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
   ],
   BRLA: [
     { chain: "Polygon", address: "0xE6A537a407488807F0bbeb0038B79004f19DDDFb" },
-    { chain: "Moonbeam", address: "0xfeB25F3fDDad13F82C4d6dbc1481516F62236429" },
+    { chain: "Celo", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
+    { chain: "Gnosis", address: "0xFECB3F7c54E2CAAE9dC6Ac9060A822D47E053760" },
+    { chain: "Base", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
+    { chain: "Ethereum", address: "0xfCB34c47f850f452C15EA1B84d51231C38A61783" },
   ],
   ABRL: [{ chain: "Polygon", address: "0x5acad7EDCcD4846F99335E26a7e6398D869dEc4f" }],
   BRL1: [{ chain: "Polygon", address: "0x5C067C80C00eCd2345b05E83A3e758eF799C40B5" }],
@@ -53,39 +56,88 @@ export interface TokenCounters {
   totalTransfers: number;
 }
 
+export interface ActivityResult {
+  daily: DailyActivity[];
+  byChain: Record<string, DailyActivity[]>;
+  chains: string[];
+  counters: TokenCounters;
+}
+
 // In-memory cache
 interface CacheEntry {
-  data: { daily: DailyActivity[]; counters: TokenCounters };
+  data: ActivityResult;
   ts: number;
 }
 const cache: Record<string, CacheEntry> = {};
-const CACHE_TTL = 10 * 60 * 1000; // 10 min (DB reads are fast)
+const CACHE_TTL = 10 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/** Aggregate per-chain rows into a single daily series */
+function aggregateDaily(byChain: Record<string, DailyActivity[]>): DailyActivity[] {
+  const map = new Map<string, DailyActivity>();
+  for (const rows of Object.values(byChain)) {
+    for (const r of rows) {
+      const existing = map.get(r.date);
+      if (existing) {
+        existing.mint += r.mint;
+        existing.burn += r.burn;
+        existing.trades += r.trades;
+        existing.newWallets += r.newWallets;
+        existing.activeWallets += r.activeWallets;
+      } else {
+        map.set(r.date, { ...r });
+      }
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Get the list of chains a symbol has contracts on */
+export function getChainsForSymbol(symbol: string): string[] {
+  return (CONTRACTS[symbol.toUpperCase()] ?? []).map((c) => c.chain);
+}
 
 // ---------------------------------------------------------------------------
 // Supabase reads
 // ---------------------------------------------------------------------------
 
-async function readFromSupabase(
-  symbol: string
-): Promise<{ daily: DailyActivity[]; counters: TokenCounters } | null> {
+async function readFromSupabase(symbol: string): Promise<ActivityResult | null> {
   if (!supabase) return null;
 
+  // Try per-chain rows first (new format)
   const { data: rows, error } = await supabase
     .from("daily_activity")
-    .select("date, mint_volume, burn_volume, trade_count, active_wallets, new_wallets")
+    .select("date, chain, mint_volume, burn_volume, trade_count, active_wallets, new_wallets")
     .eq("symbol", symbol.toUpperCase())
     .order("date", { ascending: true });
 
   if (error || !rows || rows.length === 0) return null;
 
-  const daily: DailyActivity[] = rows.map((r: any) => ({
-    date: r.date,
-    mint: r.mint_volume ?? 0,
-    burn: r.burn_volume ?? 0,
-    trades: r.trade_count ?? 0,
-    newWallets: r.new_wallets ?? 0,
-    activeWallets: r.active_wallets ?? 0,
-  }));
+  // Group by chain
+  const byChain: Record<string, DailyActivity[]> = {};
+  const legacyDaily: DailyActivity[] = [];
+
+  for (const r of rows as any[]) {
+    const entry: DailyActivity = {
+      date: r.date,
+      mint: r.mint_volume ?? 0,
+      burn: r.burn_volume ?? 0,
+      trades: r.trade_count ?? 0,
+      newWallets: r.new_wallets ?? 0,
+      activeWallets: r.active_wallets ?? 0,
+    };
+
+    const chain = r.chain ?? "ALL";
+    if (chain === "ALL") {
+      legacyDaily.push(entry);
+    } else {
+      if (!byChain[chain]) byChain[chain] = [];
+      byChain[chain].push(entry);
+    }
+  }
 
   // Get counters
   const { data: counter } = await supabase
@@ -99,7 +151,25 @@ async function readFromSupabase(
     totalTransfers: counter?.total_transfers ?? 0,
   };
 
-  return { daily, counters };
+  const chains = Object.keys(byChain);
+
+  // If we have per-chain data, aggregate it for `daily`
+  if (chains.length > 0) {
+    return {
+      daily: aggregateDaily(byChain),
+      byChain,
+      chains,
+      counters,
+    };
+  }
+
+  // Otherwise use legacy aggregated rows
+  return {
+    daily: legacyDaily,
+    byChain: {},
+    chains: [],
+    counters,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -125,13 +195,11 @@ async function fetchBlockscoutCounters(
   }
 }
 
-async function fetchBlockscoutFallback(
-  symbol: string
-): Promise<{ daily: DailyActivity[]; counters: TokenCounters }> {
+async function fetchBlockscoutFallback(symbol: string): Promise<ActivityResult> {
   const contracts = CONTRACTS[symbol.toUpperCase()] ?? [];
   const MAX_TIME = 40_000;
 
-  interface Transfer { date: string; value: number; from: string; to: string }
+  interface Transfer { date: string; value: number; from: string; to: string; chain: string }
   let allTransfers: Transfer[] = [];
   let totalHolders = 0;
   let totalTransferCount = 0;
@@ -164,7 +232,7 @@ async function fetchBlockscoutFallback(
           const decimals = parseInt(total.decimals ?? "18", 10);
           const value = parseInt(total.value ?? "0", 10) / 10 ** decimals;
           const date = (tx.timestamp ?? "").slice(0, 10);
-          if (date) allTransfers.push({ date, value, from, to });
+          if (date) allTransfers.push({ date, value, from, to, chain });
         }
 
         const np = data.next_page_params;
@@ -179,46 +247,55 @@ async function fetchBlockscoutFallback(
     totalTransferCount += counters.totalTransfers;
   }
 
-  // Process transfers into daily aggregation
-  const dailyMap: Record<string, { mint: number; burn: number; trades: number; wallets: Set<string>; newW: number }> = {};
+  // Process transfers into per-chain daily aggregation
+  const chainDailyMap: Record<string, Record<string, { mint: number; burn: number; trades: number; wallets: Set<string>; newW: number }>> = {};
   const seenWallets = new Set<string>();
   const sorted = allTransfers.sort((a, b) => a.date.localeCompare(b.date));
 
   for (const tx of sorted) {
-    if (!dailyMap[tx.date]) dailyMap[tx.date] = { mint: 0, burn: 0, trades: 0, wallets: new Set(), newW: 0 };
-    const d = dailyMap[tx.date];
+    if (!chainDailyMap[tx.chain]) chainDailyMap[tx.chain] = {};
+    const dayMap = chainDailyMap[tx.chain];
+    if (!dayMap[tx.date]) dayMap[tx.date] = { mint: 0, burn: 0, trades: 0, wallets: new Set(), newW: 0 };
+    const d = dayMap[tx.date];
+
     if (tx.from === ZERO_ADDR) {
-      d.mint += tx.value;
-      d.wallets.add(tx.to);
+      d.mint += tx.value; d.wallets.add(tx.to);
       if (!seenWallets.has(tx.to)) { d.newW++; seenWallets.add(tx.to); }
     } else if (tx.to === ZERO_ADDR) {
-      d.burn += tx.value;
-      d.wallets.add(tx.from);
+      d.burn += tx.value; d.wallets.add(tx.from);
       if (!seenWallets.has(tx.from)) { d.newW++; seenWallets.add(tx.from); }
     } else {
-      d.trades++;
-      d.wallets.add(tx.from); d.wallets.add(tx.to);
+      d.trades++; d.wallets.add(tx.from); d.wallets.add(tx.to);
       for (const a of [tx.from, tx.to]) { if (!seenWallets.has(a)) { d.newW++; seenWallets.add(a); } }
     }
   }
 
-  const daily = Object.entries(dailyMap).sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({
-    date, mint: d.mint, burn: d.burn, trades: d.trades, newWallets: d.newW, activeWallets: d.wallets.size,
-  }));
+  // Convert to ActivityResult format
+  const byChain: Record<string, DailyActivity[]> = {};
+  for (const [chain, dayMap] of Object.entries(chainDailyMap)) {
+    byChain[chain] = Object.entries(dayMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, d]) => ({
+        date, mint: d.mint, burn: d.burn, trades: d.trades,
+        newWallets: d.newW, activeWallets: d.wallets.size,
+      }));
+  }
 
-  return { daily, counters: { holders: totalHolders, totalTransfers: totalTransferCount } };
+  return {
+    daily: aggregateDaily(byChain),
+    byChain,
+    chains: Object.keys(byChain),
+    counters: { holders: totalHolders, totalTransfers: totalTransferCount },
+  };
 }
 
 // ---------------------------------------------------------------------------
 // Main entry point
 // ---------------------------------------------------------------------------
 
-export async function getTokenActivity(
-  symbol: string
-): Promise<{ daily: DailyActivity[]; counters: TokenCounters }> {
+export async function getTokenActivity(symbol: string): Promise<ActivityResult> {
   const key = symbol.toUpperCase();
 
-  // Check memory cache
   const cached = cache[key];
   if (cached && Date.now() - cached.ts < CACHE_TTL) {
     return cached.data;
@@ -227,6 +304,10 @@ export async function getTokenActivity(
   // Try Supabase first (fast, full history)
   const dbResult = await readFromSupabase(key);
   if (dbResult && dbResult.daily.length > 0) {
+    // If DB has no per-chain data, fill in chains list from CONTRACTS
+    if (dbResult.chains.length === 0) {
+      dbResult.chains = getChainsForSymbol(key);
+    }
     cache[key] = { data: dbResult, ts: Date.now() };
     return dbResult;
   }

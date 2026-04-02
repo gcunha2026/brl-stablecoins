@@ -17,6 +17,8 @@ interface CoinWithChains extends Stablecoin {
 
 interface ActivityCache {
   daily: any[];
+  byChain?: Record<string, any[]>;
+  chains?: string[];
   counters: { holders: number; totalTransfers: number };
 }
 
