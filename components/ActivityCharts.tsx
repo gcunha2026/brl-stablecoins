@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import {
   BarChart,
   Bar,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -27,6 +29,8 @@ interface DailyActivity {
 interface Props {
   symbol: string;
   chains?: string[];
+  priceUsd?: number;
+  currentSupply?: number;
   prefetchedData?: {
     daily: DailyActivity[];
     byChain?: Record<string, DailyActivity[]>;
@@ -55,7 +59,7 @@ const CHAIN_COLORS: Record<string, string> = {
   Avalanche: "#E84142",
 };
 
-function filterByPeriod(data: DailyActivity[], period: Period): DailyActivity[] {
+function filterByPeriod<T extends { date: string }>(data: T[], period: Period): T[] {
   if (period === "all") return data;
   const now = new Date();
   let cutoff: Date;
@@ -146,23 +150,10 @@ function ChainSelector({
   );
 }
 
-function ChartCard({
-  title,
-  children,
-  period,
-  onPeriodChange,
-}: {
-  title: string;
-  children: React.ReactNode;
-  period: Period;
-  onPeriodChange: (p: Period) => void;
-}) {
+function SimpleChartCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-card border border-card-border rounded-card p-5 card-hover">
-      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
-        <h3 className="text-sm font-semibold text-text-primary">{title}</h3>
-        <PeriodSelector selected={period} onChange={onPeriodChange} />
-      </div>
+      <h3 className="text-sm font-semibold text-text-primary mb-4">{title}</h3>
       <div className="h-[250px]">{children}</div>
     </div>
   );
@@ -175,15 +166,38 @@ const tooltipStyle = {
   fontSize: "12px",
 };
 
-export default function ActivityCharts({ symbol, chains, prefetchedData }: Props) {
+/** Build market cap history: work backwards from current supply */
+function buildMarketCapHistory(
+  data: DailyActivity[],
+  currentSupply: number,
+  priceUsd: number
+): { date: string; marketCap: number }[] {
+  if (data.length === 0) return [];
+
+  // Work backwards: current supply is known, subtract daily net to get historical
+  const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
+  const result: { date: string; marketCap: number }[] = [];
+  let supply = currentSupply;
+
+  for (const day of sorted) {
+    result.push({ date: day.date, marketCap: supply * priceUsd });
+    // Going back in time: reverse the day's net change
+    supply -= (day.mint - day.burn);
+  }
+
+  return result.reverse();
+}
+
+export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply, prefetchedData }: Props) {
   const [data, setData] = useState<DailyActivity[]>([]);
   const [byChain, setByChain] = useState<Record<string, DailyActivity[]>>({});
   const [availableChains, setAvailableChains] = useState<string[]>([]);
   const [selectedChain, setSelectedChain] = useState<string>("ALL");
+  const [period, setPeriod] = useState<Period>("monthly");
   const [loading, setLoading] = useState(true);
-  const [mintPeriod, setMintPeriod] = useState<Period>("all");
-  const [tradesPeriod, setTradesPeriod] = useState<Period>("all");
-  const [walletsPeriod, setWalletsPeriod] = useState<Period>("all");
+
+  const price = priceUsd ?? 0.19;
+  const supply = currentSupply ?? 0;
 
   useEffect(() => {
     if (prefetchedData) {
@@ -196,27 +210,32 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
     }
   }, [prefetchedData, chains]);
 
-  // Reset chain selection when symbol changes
   useEffect(() => {
     setSelectedChain("ALL");
   }, [symbol]);
 
-  // Active data based on chain selection
   const activeData = useMemo(() => {
     if (selectedChain === "ALL") return data;
     return byChain[selectedChain] ?? [];
   }, [selectedChain, data, byChain]);
 
-  const mintData = useMemo(() => filterByPeriod(activeData, mintPeriod), [activeData, mintPeriod]);
-  const tradesData = useMemo(() => filterByPeriod(activeData, tradesPeriod), [activeData, tradesPeriod]);
-  const walletsData = useMemo(() => filterByPeriod(activeData, walletsPeriod), [activeData, walletsPeriod]);
+  const filteredData = useMemo(() => filterByPeriod(activeData, period), [activeData, period]);
+
+  // Market cap history — use chain-specific supply if available
+  const marketCapData = useMemo(() => {
+    // For chain-specific, estimate supply proportionally
+    const chainSupply = selectedChain === "ALL"
+      ? supply
+      : supply * 0.5; // fallback estimate; real chain supply from props would be better
+    return filterByPeriod(buildMarketCapHistory(activeData, chainSupply, price), period);
+  }, [activeData, supply, price, period, selectedChain]);
 
   const showChainSelector = availableChains.length > 1;
 
   if (loading) {
     return (
       <div className="space-y-4">
-        {[1, 2, 3].map((i) => (
+        {[1, 2, 3, 4].map((i) => (
           <div key={i} className="bg-card border border-card-border rounded-card p-5">
             <div className="skeleton w-40 h-5 mb-4" />
             <div className="skeleton w-full h-[250px]" />
@@ -236,24 +255,73 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
 
   return (
     <div className="space-y-4">
-      {/* Chain Selector */}
-      {showChainSelector && (
-        <div className="bg-card border border-card-border rounded-card p-4">
+      {/* Unified Controls: Chain + Period */}
+      <div className="bg-card border border-card-border rounded-card p-4">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs text-text-muted font-medium uppercase tracking-wide">Chain:</span>
-            <ChainSelector
-              chains={availableChains}
-              selected={selectedChain}
-              onChange={setSelectedChain}
-            />
+            {showChainSelector && (
+              <>
+                <span className="text-xs text-text-muted font-medium uppercase tracking-wide">Chain:</span>
+                <ChainSelector
+                  chains={availableChains}
+                  selected={selectedChain}
+                  onChange={setSelectedChain}
+                />
+              </>
+            )}
           </div>
+          <PeriodSelector selected={period} onChange={setPeriod} />
         </div>
+      </div>
+
+      {/* Market Cap Chart */}
+      {supply > 0 && selectedChain === "ALL" && (
+        <SimpleChartCard title="Market Cap (USD)">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={marketCapData}>
+              <defs>
+                <linearGradient id="mcGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#00D4AA" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#00D4AA" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
+              <XAxis
+                dataKey="date"
+                tickFormatter={formatShortDate}
+                stroke="#6B7280"
+                tick={{ fontSize: 10 }}
+                axisLine={{ stroke: "#2D2D3D" }}
+              />
+              <YAxis
+                tickFormatter={(v) => `$${formatNumber(v)}`}
+                stroke="#6B7280"
+                tick={{ fontSize: 10 }}
+                axisLine={{ stroke: "#2D2D3D" }}
+                width={65}
+              />
+              <Tooltip
+                contentStyle={tooltipStyle}
+                labelStyle={{ color: "#E4E4E7" }}
+                formatter={(value: number) => [`$${formatNumber(value)}`, "Market Cap"]}
+                labelFormatter={formatShortDate}
+              />
+              <Area
+                type="monotone"
+                dataKey="marketCap"
+                stroke="#00D4AA"
+                fill="url(#mcGradient)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </SimpleChartCard>
       )}
 
-      {/* Mint/Burn Chart */}
-      <ChartCard title="Mint / Burn" period={mintPeriod} onPeriodChange={setMintPeriod}>
+      {/* Mint/Burn Chart (USD) */}
+      <SimpleChartCard title="Mint / Burn (USD)">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={mintData}>
+          <BarChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
             <XAxis
               dataKey="date"
@@ -263,17 +331,17 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
               axisLine={{ stroke: "#2D2D3D" }}
             />
             <YAxis
-              tickFormatter={(v) => formatNumber(v)}
+              tickFormatter={(v) => `$${formatNumber(v * price)}`}
               stroke="#6B7280"
               tick={{ fontSize: 10 }}
               axisLine={{ stroke: "#2D2D3D" }}
-              width={55}
+              width={65}
             />
             <Tooltip
               contentStyle={tooltipStyle}
               labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number, name: string) => [
-                formatNumber(value),
+                `$${formatNumber(value * price)}`,
                 name === "mint" ? "Mint" : "Burn",
               ]}
               labelFormatter={formatShortDate}
@@ -286,12 +354,12 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
             <Bar dataKey="burn" fill="#F43F5E" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </ChartCard>
+      </SimpleChartCard>
 
       {/* Trades Chart */}
-      <ChartCard title="Numero de Trades" period={tradesPeriod} onPeriodChange={setTradesPeriod}>
+      <SimpleChartCard title="Numero de Trades">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={tradesData}>
+          <BarChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
             <XAxis
               dataKey="date"
@@ -310,18 +378,18 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
             <Tooltip
               contentStyle={tooltipStyle}
               labelStyle={{ color: "#E4E4E7" }}
-              formatter={(value: number) => [value, "Trades"]}
+              formatter={(value: number) => [value.toLocaleString("pt-BR"), "Trades"]}
               labelFormatter={formatShortDate}
             />
             <Bar dataKey="trades" fill="#3B82F6" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </ChartCard>
+      </SimpleChartCard>
 
       {/* Wallets Chart */}
-      <ChartCard title="Carteiras" period={walletsPeriod} onPeriodChange={setWalletsPeriod}>
+      <SimpleChartCard title="Carteiras">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={walletsData}>
+          <BarChart data={filteredData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
             <XAxis
               dataKey="date"
@@ -341,7 +409,7 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
               contentStyle={tooltipStyle}
               labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number, name: string) => [
-                value,
+                value.toLocaleString("pt-BR"),
                 name === "newWallets" ? "Novas" : "Ativas",
               ]}
               labelFormatter={formatShortDate}
@@ -354,7 +422,7 @@ export default function ActivityCharts({ symbol, chains, prefetchedData }: Props
             <Bar dataKey="activeWallets" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-      </ChartCard>
+      </SimpleChartCard>
     </div>
   );
 }

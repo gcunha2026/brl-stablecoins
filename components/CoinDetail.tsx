@@ -111,13 +111,13 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <StatCard
-          title="Market Cap"
+          title="Market Cap (USD)"
           value={`$ ${formatNumber(coin.marketCap)}`}
           icon={DollarSign}
         />
         <StatCard
-          title="Supply (BRL)"
-          value={formatNumber(coin.supply)}
+          title="Supply"
+          value={`R$ ${formatNumber(coin.supply)}`}
           icon={Layers}
         />
         <StatCard
@@ -163,8 +163,8 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
                       fontSize: "12px",
                     }}
                     formatter={(value: number) => [
-                      `$ ${formatNumber(value)}`,
-                      "Supply",
+                      `$ ${formatNumber(value * coin.price)}`,
+                      "Market Cap",
                     ]}
                   />
                 </PieChart>
@@ -187,7 +187,7 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
                   </div>
                   <div className="flex items-center gap-3">
                     <span className="text-sm text-text-primary">
-                      {formatNumber(ch.supply)}
+                      $ {formatNumber(ch.supply * coin.price)}
                     </span>
                     <span className="text-xs text-text-muted w-12 text-right">
                       {ch.percentage.toFixed(1)}%
@@ -215,6 +215,8 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
       <ActivityCharts
         symbol={coin.symbol}
         chains={coin.chains}
+        priceUsd={coin.price}
+        currentSupply={coin.supply}
         prefetchedData={activityData}
       />
     </div>
