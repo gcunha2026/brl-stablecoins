@@ -108,7 +108,7 @@ async function saveProgress(
 }
 
 async function saveDailyBatch(
-  symbol: string, dailyMap: Map<string, DailyAgg>, knownWallets: Set<string>
+  symbol: string, chain: string, dailyMap: Map<string, DailyAgg>, knownWallets: Set<string>
 ) {
   const rows = Array.from(dailyMap.entries()).map(([date, d]) => {
     let newCount = 0;
@@ -116,7 +116,7 @@ async function saveDailyBatch(
       if (!knownWallets.has(w)) { newCount++; knownWallets.add(w); }
     }
     return {
-      symbol, date,
+      symbol, chain, date,
       mint_count: d.mint_count, mint_volume: d.mint_volume,
       burn_count: d.burn_count, burn_volume: d.burn_volume,
       trade_count: d.trade_count,
@@ -126,7 +126,7 @@ async function saveDailyBatch(
   });
 
   if (rows.length > 0) {
-    const { error } = await supabase.from("daily_activity").upsert(rows, { onConflict: "symbol,date" });
+    const { error } = await supabase.from("daily_activity").upsert(rows, { onConflict: "symbol,chain,date" });
     if (error) console.error("  Error saving daily:", error.message);
   }
 
@@ -240,7 +240,7 @@ async function backfillChain(symbol: string, chain: string, address: string) {
 
       // Save every 5 batches (50k transfers)
       if (batch % 5 === 0 || reachedCutoff) {
-        await saveDailyBatch(symbol, dailyMap, knownWallets);
+        await saveDailyBatch(symbol, chain, dailyMap, knownWallets);
         dailyMap = new Map();
         await saveProgress(symbol, chain, lastDate, totalFetched, "running", endBlock);
         console.log(`    batch ${batch}: ${totalFetched.toLocaleString()} transfers, last: ${lastDate}`);
@@ -253,7 +253,7 @@ async function backfillChain(symbol: string, chain: string, address: string) {
       await new Promise(r => setTimeout(r, 500));
     } catch (err: any) {
       console.error(`    Error batch ${batch}: ${err.message}. Saving & retrying in 5s...`);
-      await saveDailyBatch(symbol, dailyMap, knownWallets);
+      await saveDailyBatch(symbol, chain, dailyMap, knownWallets);
       dailyMap = new Map();
       await saveProgress(symbol, chain, lastDate, totalFetched, "running", endBlock);
       await new Promise(r => setTimeout(r, 5000));
@@ -261,7 +261,7 @@ async function backfillChain(symbol: string, chain: string, address: string) {
   }
 
   // Final save
-  await saveDailyBatch(symbol, dailyMap, knownWallets);
+  await saveDailyBatch(symbol, chain, dailyMap, knownWallets);
   await saveProgress(symbol, chain, lastDate, totalFetched, "done");
   console.log(`  ${chain}: DONE - ${totalFetched.toLocaleString()} transfers, last: ${lastDate}`);
 }
