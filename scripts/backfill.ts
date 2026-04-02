@@ -247,7 +247,7 @@ async function backfillChain(symbol: string, chain: string, address: string) {
       }
 
       if (reachedCutoff) break;
-      if (items.length < BATCH_SIZE) break; // last page
+      if (items.length < currentBatchSize) break; // last page
 
       // Small delay
       await new Promise(r => setTimeout(r, 500));
