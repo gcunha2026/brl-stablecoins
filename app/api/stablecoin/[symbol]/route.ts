@@ -3,11 +3,16 @@ import { fetchAllStablecoins } from "@/lib/blockchain";
 
 export const revalidate = 300;
 
+const VALID_SYMBOL = /^[A-Za-z0-9]{1,10}$/;
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { symbol: string } }
 ) {
   const { symbol } = params;
+  if (!VALID_SYMBOL.test(symbol)) {
+    return NextResponse.json({ error: "Invalid symbol" }, { status: 400 });
+  }
   const coins = await fetchAllStablecoins();
   const coin = coins.find(
     (c) => c.symbol.toUpperCase() === symbol.toUpperCase()

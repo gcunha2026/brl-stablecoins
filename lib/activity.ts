@@ -1,8 +1,10 @@
 /**
  * Token activity data - reads from Supabase (backfilled data) with
  * fallback to Blockscout for tokens not yet in the database.
+ *
+ * SERVER-ONLY: Contains contract addresses that must not leak to the client.
  */
-
+import "server-only";
 import { supabase } from "./supabase";
 
 const BLOCKSCOUT_URLS: Record<string, string> = {

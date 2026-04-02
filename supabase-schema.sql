@@ -54,3 +54,60 @@ CREATE TABLE IF NOT EXISTS known_wallets (
 -- Index for fast wallet lookups
 CREATE INDEX IF NOT EXISTS idx_known_wallets_symbol
   ON known_wallets(symbol);
+
+-- =============================================================
+-- Row Level Security (RLS)
+-- Enable RLS on all tables and create policies:
+--   - Public (anon) can SELECT
+--   - Only service_role can INSERT/UPDATE/DELETE
+-- Run this in Supabase SQL Editor after creating the tables.
+-- =============================================================
+
+ALTER TABLE daily_activity ENABLE ROW LEVEL SECURITY;
+ALTER TABLE backfill_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE token_counters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE known_wallets ENABLE ROW LEVEL SECURITY;
+
+-- daily_activity policies
+CREATE POLICY "Allow public read on daily_activity"
+  ON daily_activity FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow service_role write on daily_activity"
+  ON daily_activity FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- backfill_progress policies
+CREATE POLICY "Allow public read on backfill_progress"
+  ON backfill_progress FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow service_role write on backfill_progress"
+  ON backfill_progress FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- token_counters policies
+CREATE POLICY "Allow public read on token_counters"
+  ON token_counters FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow service_role write on token_counters"
+  ON token_counters FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);
+
+-- known_wallets policies
+CREATE POLICY "Allow public read on known_wallets"
+  ON known_wallets FOR SELECT
+  USING (true);
+
+CREATE POLICY "Allow service_role write on known_wallets"
+  ON known_wallets FOR ALL
+  TO service_role
+  USING (true)
+  WITH CHECK (true);

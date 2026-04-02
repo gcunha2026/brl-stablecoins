@@ -34,17 +34,17 @@ const CONTRACTS: Record<string, { chain: string; address: string }[]> = {
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 export async function GET(req: NextRequest) {
-  // Verify cron secret (optional, for security)
+  // Verify cron secret — MANDATORY
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
   if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: "Missing Supabase env" }, { status: 500 });
+    return NextResponse.json({ error: "Service unavailable" }, { status: 503 });
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -109,8 +109,8 @@ export async function GET(req: NextRequest) {
 
         await supabase.from("daily_activity").upsert(rows, { onConflict: "symbol,date" });
         results[`${symbol}/${chain}`] = `${items.length} transfers, ${Object.keys(dailyMap).length} days`;
-      } catch (err: any) {
-        results[`${symbol}/${chain}`] = `error: ${err.message}`;
+      } catch {
+        results[`${symbol}/${chain}`] = "error";
       }
     }
 

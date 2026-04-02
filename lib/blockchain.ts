@@ -1,7 +1,11 @@
 /**
  * On-chain data fetching for BRL stablecoins.
  * Calls RPC endpoints directly — no backend needed.
+ *
+ * SERVER-ONLY: This module contains contract addresses and treasury wallets
+ * that must never be bundled into client-side JavaScript.
  */
+import "server-only";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -502,6 +506,4 @@ export async function fetchAllStablecoins(): Promise<FetchedCoin[]> {
   return sorted;
 }
 
-export function getRegistry() {
-  return REGISTRY;
-}
+// Registry is intentionally NOT exported — contract addresses must stay server-only.
