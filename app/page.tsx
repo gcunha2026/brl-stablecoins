@@ -251,12 +251,22 @@ export default function DashboardPage() {
               CoinGecko in near real-time. Figures may differ slightly from
               issuer dashboards due to refresh cadence.
             </p>
+            <p className="mt-3 text-[13px] leading-relaxed text-ink-3">
+              <a href="/methodology" className="hover:text-accent">
+                Read the full methodology →
+              </a>
+            </p>
           </div>
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-line pt-5 font-mono text-[10px] uppercase tracking-[0.2em] text-muted sm:flex-row sm:items-center sm:justify-between">
           <span>© {new Date().getFullYear()} Fintrender · All rights reserved.</span>
-          <span>brl.fintrender.com</span>
+          <div className="flex items-center gap-5">
+            <a href="/methodology" className="hover:text-accent">
+              Methodology
+            </a>
+            <span>brl.fintrender.com</span>
+          </div>
         </div>
       </footer>
     </div>
