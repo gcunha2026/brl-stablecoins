@@ -16,7 +16,6 @@ export default function Header() {
         </svg>
         <span className="text-[20px] font-semibold tracking-[-0.025em] text-ink">
           Fintrender
-          <em className="ml-[2px] font-serif font-normal italic text-accent">.</em>
         </span>
       </a>
       <nav className="flex items-center gap-7 font-mono text-[12px] uppercase tracking-[0.18em] text-muted">
