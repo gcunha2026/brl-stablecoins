@@ -1,11 +1,17 @@
-const chainColors: Record<string, { bg: string; text: string }> = {
-  Ethereum: { bg: "bg-[#627EEA]/15", text: "text-[#627EEA]" },
-  Polygon: { bg: "bg-[#8247E5]/15", text: "text-[#8247E5]" },
-  Solana: { bg: "bg-accent-teal/15", text: "text-accent-teal" },
-  "BNB Chain": { bg: "bg-[#F3BA2F]/15", text: "text-[#F3BA2F]" },
-  Celo: { bg: "bg-[#35D07F]/15", text: "text-[#35D07F]" },
-  Stellar: { bg: "bg-accent-cyan/15", text: "text-accent-cyan" },
-  "Hyperledger Besu": { bg: "bg-accent-pink/15", text: "text-accent-pink" },
+const CHAIN_COLORS: Record<string, string> = {
+  Ethereum: "#627EEA",
+  Polygon: "#8247E5",
+  Solana: "#1AD0E9",
+  "BNB Chain": "#F3BA2F",
+  BSC: "#F3BA2F",
+  Celo: "#35D07F",
+  Stellar: "#1AD0E9",
+  "Hyperledger Besu": "#FF7DCF",
+  Base: "#0052FF",
+  Moonbeam: "#53CBC8",
+  Gnosis: "#04795B",
+  Arbitrum: "#28A0F0",
+  Avalanche: "#E84142",
 };
 
 interface ChainBadgeProps {
@@ -13,15 +19,17 @@ interface ChainBadgeProps {
 }
 
 export default function ChainBadge({ chain }: ChainBadgeProps) {
-  const colors = chainColors[chain] || {
-    bg: "bg-white/10",
-    text: "text-text-secondary",
-  };
+  const color = CHAIN_COLORS[chain] ?? "#8a8a8a";
 
   return (
     <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${colors.bg} ${colors.text}`}
+      className="inline-flex items-center gap-1.5 border border-line px-2 py-[3px] font-mono text-[10px] uppercase tracking-[0.16em] text-ink-3"
+      style={{ borderRadius: 100 }}
     >
+      <span
+        className="inline-block h-1.5 w-1.5 rounded-full"
+        style={{ backgroundColor: color }}
+      />
       {chain}
     </span>
   );

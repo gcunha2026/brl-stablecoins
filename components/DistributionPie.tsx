@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Stablecoin } from "@/lib/types";
 import { fetchStablecoins } from "@/lib/api";
-import { formatNumber, formatCurrency } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 
 export default function DistributionPie() {
   const [data, setData] = useState<Stablecoin[]>([]);
@@ -20,70 +20,67 @@ export default function DistributionPie() {
 
   if (loading) {
     return (
-      <div className="bg-card border border-card-border rounded-card p-5 h-[400px]">
-        <div className="skeleton w-40 h-6 mb-4" />
-        <div className="flex items-center justify-center h-[300px]">
-          <div className="skeleton w-52 h-52 rounded-full" />
+      <div className="ft-card h-[360px]">
+        <div className="skeleton mb-4 h-5 w-40" />
+        <div className="flex h-[270px] items-center justify-center">
+          <div className="skeleton h-52 w-52 rounded-full" />
         </div>
       </div>
     );
   }
 
-  const totalMcap = data.reduce((sum, s) => sum + s.marketCap, 0);
+  const sorted = [...data].sort((a, b) => b.marketCap - a.marketCap);
+  const totalMcap = sorted.reduce((sum, s) => sum + s.marketCap, 0);
 
   return (
-    <div className="bg-card border border-card-border rounded-card p-5 card-hover">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">
-        Market Cap Distribution
-      </h3>
+    <div className="ft-card ft-card-hover">
+      <div className="mb-5 flex items-baseline justify-between">
+        <h3 className="font-sans text-[18px] font-semibold tracking-[-0.02em] text-ink">
+          market cap <span className="serif-em">distribution</span>
+        </h3>
+        <span className="kicker">by token</span>
+      </div>
 
-      <div className="flex flex-col lg:flex-row items-center gap-4">
-        {/* Chart */}
-        <div className="h-[250px] w-full lg:w-1/2">
+      <div className="flex flex-col items-center gap-6 lg:flex-row">
+        <div className="h-[240px] w-full lg:w-1/2">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Pie
-                data={data}
+                data={sorted}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
                 outerRadius={100}
-                paddingAngle={3}
+                paddingAngle={2}
                 dataKey="marketCap"
                 nameKey="symbol"
                 onMouseEnter={(_, index) => setActiveIndex(index)}
                 onMouseLeave={() => setActiveIndex(null)}
               >
-                {data.map((entry, index) => (
+                {sorted.map((entry, index) => (
                   <Cell
                     key={entry.symbol}
                     fill={entry.color}
                     opacity={
-                      activeIndex === null || activeIndex === index ? 1 : 0.4
+                      activeIndex === null || activeIndex === index ? 1 : 0.35
                     }
-                    stroke="transparent"
+                    stroke="var(--paper)"
+                    strokeWidth={2}
                   />
                 ))}
               </Pie>
               <Tooltip
-                contentStyle={{
-                  backgroundColor: "#1E1E2E",
-                  border: "1px solid #2D2D3D",
-                  borderRadius: "8px",
-                  fontSize: "12px",
-                }}
-                formatter={(value: number) => [
+                formatter={(value: number, name: string) => [
                   `$${formatNumber(value)}`,
-                  "Market Cap",
+                  name,
                 ]}
               />
             </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Legend */}
-        <div className="w-full lg:w-1/2 space-y-2.5">
-          {data.map((coin) => {
+        <div className="w-full space-y-2 lg:w-1/2">
+          {sorted.map((coin) => {
             const pct =
               totalMcap > 0
                 ? ((coin.marketCap / totalMcap) * 100).toFixed(1)
@@ -91,22 +88,22 @@ export default function DistributionPie() {
             return (
               <div
                 key={coin.symbol}
-                className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/5 transition-colors"
+                className="flex items-center justify-between border-b border-line py-2 last:border-b-0"
               >
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className="w-3 h-3 rounded-full"
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full"
                     style={{ backgroundColor: coin.color }}
                   />
-                  <span className="text-sm font-medium text-text-primary">
+                  <span className="font-sans text-[14px] font-medium text-ink">
                     {coin.symbol}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-text-secondary">
+                <div className="flex items-center gap-4">
+                  <span className="font-mono text-[12px] text-ink-3">
                     ${formatNumber(coin.marketCap)}
                   </span>
-                  <span className="text-xs text-text-muted w-12 text-right">
+                  <span className="w-12 text-right font-mono text-[11px] text-muted">
                     {pct}%
                   </span>
                 </div>

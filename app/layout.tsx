@@ -1,15 +1,41 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import {
+  Space_Grotesk,
+  Instrument_Serif,
+  JetBrains_Mono,
+} from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
 
-const inter = Inter({ subsets: ["latin"] });
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+  style: ["normal", "italic"],
+  variable: "--font-instrument-serif",
+  display: "swap",
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["300", "400", "500"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "Fintrender | BRL Stablecoins Dashboard",
+  title: "BRL Stablecoins | Fintrender",
   description:
-    "Real-time analytics dashboard for Brazilian Real (BRL) stablecoins - supply, volume, chains, and DeFi pools.",
+    "Real-time analytics dashboard for Brazilian Real (BRL) stablecoins — supply, volume, chains and DeFi pools.",
 };
+
+const themeScript = `(function(){try{var k='fintrender-theme';if(localStorage.getItem(k)==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();`;
 
 export default function RootLayout({
   children,
@@ -17,11 +43,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className="dark">
-      <body className={`${inter.className} bg-primary text-text-primary`}>
-        <div className="min-h-screen">
+    <html
+      lang="pt-BR"
+      suppressHydrationWarning
+      className={`${spaceGrotesk.variable} ${instrumentSerif.variable} ${jetbrainsMono.variable}`}
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body>
+        <div className="frame">
           <Header />
-          <main className="p-6 max-w-7xl mx-auto">{children}</main>
+          <main>{children}</main>
         </div>
       </body>
     </html>

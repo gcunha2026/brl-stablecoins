@@ -9,30 +9,43 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: "#0F1117",
-        card: "#1E1E2E",
-        "card-border": "#2D2D3D",
-        "card-hover": "#252538",
-        "accent-teal": "#00D4AA",
-        "accent-cyan": "#00B4D8",
-        "accent-purple": "#7C3AED",
-        "accent-pink": "#EC4899",
-        "accent-blue": "#3B82F6",
-        "accent-orange": "#F59E0B",
-        "text-primary": "#E4E4E7",
-        "text-secondary": "#9CA3AF",
-        "text-muted": "#6B7280",
+        // Fintrender brand palette — drives surfaces and accents
+        paper: "var(--paper)",
+        "paper-2": "var(--paper-2)",
+        ink: "var(--ink)",
+        "ink-2": "var(--ink-2)",
+        "ink-3": "var(--ink-3)",
+        muted: "var(--muted)",
+        "muted-2": "var(--muted-2)",
+        line: "var(--line)",
+        "line-2": "var(--line-2)",
+        accent: "var(--accent)",
+        "accent-soft": "var(--accent-soft)",
+        // Fintrender fixed brand colors (for charts, badges, chain palette)
+        brand: {
+          blue: "#3D52EF",
+          "blue-dark": "#294199",
+          "blue-light": "#6982FF",
+          cyan: "#1AD0E9",
+          green: "#00C331",
+          orange: "#FE5B00",
+          pink: "#FF7DCF",
+          purple: "#A649F0",
+          yellow: "#F0EB3E",
+          red: "#E5484D",
+        },
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["var(--font-space-grotesk)", "ui-sans-serif", "system-ui", "sans-serif"],
+        serif: ["var(--font-instrument-serif)", "Georgia", "serif"],
+        mono: ["var(--font-jetbrains-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       borderRadius: {
-        card: "12px",
+        card: "0px",
       },
-      backgroundImage: {
-        "gradient-teal": "linear-gradient(135deg, #00D4AA, #00B4D8)",
-        "gradient-purple": "linear-gradient(135deg, #7C3AED, #EC4899)",
-        "gradient-blue": "linear-gradient(135deg, #3B82F6, #00B4D8)",
+      letterSpacing: {
+        "brand-tight": "-0.03em",
+        kicker: "0.2em",
       },
       keyframes: {
         "fade-in": {

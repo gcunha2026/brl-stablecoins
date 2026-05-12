@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { Stablecoin } from "@/lib/types";
-import { formatCurrency, formatNumber } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 import { STABLECOIN_DESCRIPTIONS } from "@/lib/descriptions";
 import ChainBadge from "./ChainBadge";
 import StatCard from "./StatCard";
@@ -38,7 +38,11 @@ interface CoinDetailProps {
   prefetchedActivity?: ActivityData | null;
 }
 
-export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }: CoinDetailProps) {
+export default function CoinDetail({
+  coin,
+  chainBreakdown,
+  prefetchedActivity,
+}: CoinDetailProps) {
   const holders = prefetchedActivity?.counters?.holders ?? 0;
   const activityData = prefetchedActivity ?? null;
 
@@ -48,102 +52,109 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
     issuer: "",
   };
 
-  const pieData = chainBreakdown.map((ch) => ({
-    ...ch,
-    color: CHAIN_COLORS[ch.chain] ?? "#94a3b8",
-  }));
+  const pieData = chainBreakdown
+    .map((ch) => ({
+      ...ch,
+      color: CHAIN_COLORS[ch.chain] ?? "#94a3b8",
+    }))
+    .sort((a, b) => b.supply - a.supply);
 
   return (
-    <div className="space-y-5 animate-fade-in">
-      {/* Header + Description */}
-      <div className="bg-card border border-card-border rounded-card p-5">
-        <div className="flex items-start gap-4 flex-wrap">
-          <div
-            className="w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0"
-            style={{
-              backgroundColor: coin.color + "20",
-              color: coin.color,
-            }}
-          >
-            {coin.symbol.slice(0, 3)}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h2 className="text-xl font-bold text-text-primary">
-                {coin.name}
-              </h2>
-              <span className="text-sm text-text-muted bg-white/5 px-2 py-0.5 rounded">
-                {coin.symbol}
-              </span>
-              {info.issuer && (
-                <span className="text-xs text-text-muted">
-                  por {info.issuer}
-                </span>
-              )}
-            </div>
-            {info.description && (
-              <p className="text-sm text-text-secondary mt-2 leading-relaxed max-w-2xl">
-                {info.description}
-              </p>
-            )}
-            <div className="flex items-center gap-3 mt-3 flex-wrap">
-              {info.website && (
-                <a
-                  href={info.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-accent-teal hover:underline text-sm flex items-center gap-1"
-                >
-                  <Link2 className="w-3.5 h-3.5" />
-                  {info.website.replace("https://", "")}
-                </a>
-              )}
-              <div className="flex items-center gap-1.5">
-                {coin.chains.map((chain) => (
-                  <ChainBadge key={chain} chain={chain} />
-                ))}
-              </div>
-            </div>
+    <div className="animate-fade-in space-y-6">
+      {/* Header — large brand-like title */}
+      <section className="border-b-[1.5px] border-line-2 pb-10 pt-6">
+        <div className="kicker mb-5 flex flex-wrap items-center gap-4">
+          <span>
+            <span className="text-muted-2">(</span>
+            {coin.symbol}
+            <span className="text-muted-2">)</span>
+          </span>
+          <span className="text-muted-2">·</span>
+          <span>{info.issuer || "Stablecoin BRL"}</span>
+        </div>
+
+        <h1 className="font-sans text-[64px] font-semibold leading-[0.95] tracking-[-0.04em] text-ink sm:text-[88px]">
+          {coin.name}
+          <em className="ml-1 font-serif font-normal italic text-accent">.</em>
+        </h1>
+
+        {info.description && (
+          <p className="mt-6 max-w-[760px] font-serif text-[20px] leading-[1.35] tracking-[-0.005em] text-ink-3 sm:text-[22px]">
+            {info.description}
+          </p>
+        )}
+
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          {info.website && (
+            <a
+              href={info.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-[0.18em] text-ink transition-colors hover:text-accent"
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              {info.website.replace("https://", "")}
+            </a>
+          )}
+          <div className="flex flex-wrap items-center gap-1.5">
+            {coin.chains.map((chain) => (
+              <ChainBadge key={chain} chain={chain} />
+            ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <StatCard
-          title="Market Cap (USD)"
-          value={`$ ${formatNumber(coin.marketCap)}`}
-          icon={DollarSign}
-        />
-        <StatCard
-          title="Supply"
-          value={`R$ ${formatNumber(coin.supply)}`}
-          icon={Layers}
-        />
-        <StatCard
-          title="Holders"
-          value={holders ? holders.toLocaleString("pt-BR") : "—"}
-          icon={Users}
-        />
-      </div>
+      {/* Stats grid — Fintrender bordered cells, no card padding */}
+      <section className="grid grid-cols-1 border-b border-line sm:grid-cols-3">
+        <div className="border-line py-6 pr-8 sm:border-r">
+          <StatCard
+            index="(a)"
+            title="Market Cap"
+            value={`$ ${formatNumber(coin.marketCap)}`}
+            icon={DollarSign}
+            sub="USD"
+          />
+        </div>
+        <div className="border-line py-6 pr-8 sm:border-r sm:pl-8">
+          <StatCard
+            index="(b)"
+            title="Supply"
+            value={`R$ ${formatNumber(coin.supply)}`}
+            icon={Layers}
+            sub="On-chain supply"
+          />
+        </div>
+        <div className="py-6 sm:pl-8">
+          <StatCard
+            index="(c)"
+            title="Holders"
+            value={holders ? holders.toLocaleString("pt-BR") : "—"}
+            icon={Users}
+            sub="Unique addresses"
+          />
+        </div>
+      </section>
 
-      {/* Chain Breakdown (only show if multiple chains) */}
+      {/* Chain breakdown (only if multiple chains) */}
       {pieData.length > 1 && (
-        <div className="bg-card border border-card-border rounded-card p-5">
-          <h3 className="text-sm font-semibold text-text-primary mb-3">
-            Distribuicao por Chain
-          </h3>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="h-[180px] w-[180px]">
+        <div className="ft-card">
+          <div className="mb-5 flex items-baseline justify-between">
+            <h3 className="font-sans text-[18px] font-semibold tracking-[-0.02em] text-ink">
+              distribution by <span className="serif-em">chain</span>
+            </h3>
+            <span className="kicker">{pieData.length} chains</span>
+          </div>
+          <div className="flex flex-col items-center gap-6 sm:flex-row">
+            <div className="h-[200px] w-[200px]">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={pieData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={45}
-                    outerRadius={75}
-                    paddingAngle={3}
+                    innerRadius={50}
+                    outerRadius={85}
+                    paddingAngle={2}
                     dataKey="supply"
                     nameKey="chain"
                   >
@@ -151,20 +162,15 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
                       <Cell
                         key={entry.chain}
                         fill={entry.color}
-                        stroke="transparent"
+                        stroke="var(--paper)"
+                        strokeWidth={2}
                       />
                     ))}
                   </Pie>
                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: "#1E1E2E",
-                      border: "1px solid #2D2D3D",
-                      borderRadius: "8px",
-                      fontSize: "12px",
-                    }}
-                    formatter={(value: number) => [
+                    formatter={(value: number, name: string) => [
                       `$ ${formatNumber(value * coin.price)}`,
-                      "Market Cap",
+                      name,
                     ]}
                   />
                 </PieChart>
@@ -174,22 +180,22 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
               {pieData.map((ch) => (
                 <div
                   key={ch.chain}
-                  className="flex items-center justify-between"
+                  className="flex items-center justify-between border-b border-line py-2 last:border-b-0"
                 >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-2.5 h-2.5 rounded-full"
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
                       style={{ backgroundColor: ch.color }}
                     />
-                    <span className="text-sm text-text-secondary">
+                    <span className="font-sans text-[14px] text-ink">
                       {ch.chain}
                     </span>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-text-primary">
+                  <div className="flex items-center gap-4">
+                    <span className="font-mono text-[12px] text-ink-3">
                       $ {formatNumber(ch.supply * coin.price)}
                     </span>
-                    <span className="text-xs text-text-muted w-12 text-right">
+                    <span className="w-12 text-right font-mono text-[11px] text-muted">
                       {ch.percentage.toFixed(1)}%
                     </span>
                   </div>
@@ -200,18 +206,17 @@ export default function CoinDetail({ coin, chainBreakdown, prefetchedActivity }:
         </div>
       )}
 
-      {/* Single chain info */}
+      {/* Single chain summary */}
       {pieData.length === 1 && (
-        <div className="bg-card border border-card-border rounded-card p-4 flex items-center gap-3">
-          <span className="text-sm text-text-muted">Chain:</span>
+        <div className="ft-card flex items-center gap-4">
+          <span className="kicker">Chain</span>
           <ChainBadge chain={pieData[0].chain} />
-          <span className="text-sm text-text-primary ml-auto">
+          <span className="ml-auto font-mono text-[13px] text-ink">
             {formatNumber(pieData[0].supply)}
           </span>
         </div>
       )}
 
-      {/* Activity Charts */}
       <ActivityCharts
         symbol={coin.symbol}
         chains={coin.chains}

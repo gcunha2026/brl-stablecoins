@@ -22,6 +22,7 @@ interface DailyActivity {
   mint: number;
   burn: number;
   trades: number;
+  tradeVolume: number;
   newWallets: number;
   activeWallets: number;
 }
@@ -59,7 +60,10 @@ const CHAIN_COLORS: Record<string, string> = {
   Avalanche: "#E84142",
 };
 
-function filterByPeriod<T extends { date: string }>(data: T[], period: Period): T[] {
+function filterByPeriod<T extends { date: string }>(
+  data: T[],
+  period: Period
+): T[] {
   if (period === "all") return data;
   const now = new Date();
   let cutoff: Date;
@@ -89,15 +93,15 @@ function PeriodSelector({
   onChange: (p: Period) => void;
 }) {
   return (
-    <div className="flex gap-1 bg-primary rounded-lg p-0.5">
+    <div className="flex gap-0 border border-line">
       {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
         <button
           key={p}
           onClick={() => onChange(p)}
-          className={`px-2.5 py-1 text-xs rounded-md transition-colors ${
+          className={`px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.16em] transition-colors ${
             selected === p
-              ? "bg-accent-teal/20 text-accent-teal"
-              : "text-text-secondary hover:text-text-primary"
+              ? "bg-ink text-paper"
+              : "text-ink-3 hover:bg-accent-soft hover:text-accent"
           }`}
         >
           {PERIOD_LABELS[p]}
@@ -117,13 +121,13 @@ function ChainSelector({
   onChange: (chain: string) => void;
 }) {
   return (
-    <div className="flex gap-1.5 flex-wrap">
+    <div className="flex flex-wrap gap-1.5">
       <button
         onClick={() => onChange("ALL")}
-        className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+        className={`rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
           selected === "ALL"
-            ? "bg-accent-teal/20 text-accent-teal border-accent-teal/40"
-            : "text-text-secondary border-card-border hover:text-text-primary hover:border-text-muted"
+            ? "border-ink bg-ink text-paper"
+            : "border-line text-ink-3 hover:border-ink-2 hover:text-ink"
         }`}
       >
         Todas
@@ -132,15 +136,19 @@ function ChainSelector({
         <button
           key={chain}
           onClick={() => onChange(chain)}
-          className={`px-3 py-1 text-xs rounded-full border transition-colors flex items-center gap-1.5 ${
+          className={`flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] transition-colors ${
             selected === chain
-              ? "border-current text-text-primary"
-              : "text-text-secondary border-card-border hover:text-text-primary hover:border-text-muted"
+              ? "border-current text-ink"
+              : "border-line text-ink-3 hover:border-ink-2 hover:text-ink"
           }`}
-          style={selected === chain ? { color: CHAIN_COLORS[chain] ?? "#94a3b8" } : undefined}
+          style={
+            selected === chain
+              ? { color: CHAIN_COLORS[chain] ?? "#94a3b8" }
+              : undefined
+          }
         >
           <span
-            className="w-2 h-2 rounded-full inline-block"
+            className="inline-block h-2 w-2 rounded-full"
             style={{ backgroundColor: CHAIN_COLORS[chain] ?? "#94a3b8" }}
           />
           {chain}
@@ -150,20 +158,32 @@ function ChainSelector({
   );
 }
 
-function SimpleChartCard({ title, children }: { title: string; children: React.ReactNode }) {
+function ChartCard({
+  title,
+  index,
+  children,
+}: {
+  title: string;
+  index?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="bg-card border border-card-border rounded-card p-5 card-hover">
-      <h3 className="text-sm font-semibold text-text-primary mb-4">{title}</h3>
+    <div className="ft-card ft-card-hover">
+      <div className="mb-4 flex items-baseline justify-between">
+        <h3 className="font-sans text-[16px] font-semibold tracking-[-0.02em] text-ink">
+          {index && <span className="serif-em mr-2">{index}</span>}
+          {title}
+        </h3>
+      </div>
       <div className="h-[250px]">{children}</div>
     </div>
   );
 }
 
-const tooltipStyle = {
-  backgroundColor: "#1E1E2E",
-  border: "1px solid #2D2D3D",
-  borderRadius: "8px",
-  fontSize: "12px",
+const axisStyle = {
+  fontSize: 10,
+  fontFamily: "var(--font-jetbrains-mono)",
+  fill: "var(--muted)",
 };
 
 /** Build market cap history: work backwards from current supply */
@@ -174,21 +194,25 @@ function buildMarketCapHistory(
 ): { date: string; marketCap: number }[] {
   if (data.length === 0) return [];
 
-  // Work backwards: current supply is known, subtract daily net to get historical
   const sorted = [...data].sort((a, b) => b.date.localeCompare(a.date));
   const result: { date: string; marketCap: number }[] = [];
   let supply = currentSupply;
 
   for (const day of sorted) {
     result.push({ date: day.date, marketCap: supply * priceUsd });
-    // Going back in time: reverse the day's net change
-    supply -= (day.mint - day.burn);
+    supply -= day.mint - day.burn;
   }
 
   return result.reverse();
 }
 
-export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply, prefetchedData }: Props) {
+export default function ActivityCharts({
+  symbol,
+  chains,
+  priceUsd,
+  currentSupply,
+  prefetchedData,
+}: Props) {
   const [data, setData] = useState<DailyActivity[]>([]);
   const [byChain, setByChain] = useState<Record<string, DailyActivity[]>>({});
   const [availableChains, setAvailableChains] = useState<string[]>([]);
@@ -219,15 +243,17 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
     return byChain[selectedChain] ?? [];
   }, [selectedChain, data, byChain]);
 
-  const filteredData = useMemo(() => filterByPeriod(activeData, period), [activeData, period]);
+  const filteredData = useMemo(
+    () => filterByPeriod(activeData, period),
+    [activeData, period]
+  );
 
-  // Market cap history — use chain-specific supply if available
   const marketCapData = useMemo(() => {
-    // For chain-specific, estimate supply proportionally
-    const chainSupply = selectedChain === "ALL"
-      ? supply
-      : supply * 0.5; // fallback estimate; real chain supply from props would be better
-    return filterByPeriod(buildMarketCapHistory(activeData, chainSupply, price), period);
+    const chainSupply = selectedChain === "ALL" ? supply : supply * 0.5;
+    return filterByPeriod(
+      buildMarketCapHistory(activeData, chainSupply, price),
+      period
+    );
   }, [activeData, supply, price, period, selectedChain]);
 
   const showChainSelector = availableChains.length > 1;
@@ -236,9 +262,9 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
     return (
       <div className="space-y-4">
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="bg-card border border-card-border rounded-card p-5">
-            <div className="skeleton w-40 h-5 mb-4" />
-            <div className="skeleton w-full h-[250px]" />
+          <div key={i} className="ft-card">
+            <div className="skeleton mb-4 h-5 w-40" />
+            <div className="skeleton h-[250px] w-full" />
           </div>
         ))}
       </div>
@@ -247,7 +273,7 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
 
   if (data.length === 0) {
     return (
-      <div className="bg-card border border-card-border rounded-card p-8 text-center text-text-muted">
+      <div className="ft-card p-12 text-center font-mono text-[12px] uppercase tracking-[0.18em] text-muted">
         Sem dados de atividade disponíveis para {symbol}
       </div>
     );
@@ -255,13 +281,13 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
 
   return (
     <div className="space-y-4">
-      {/* Unified Controls: Chain + Period */}
-      <div className="bg-card border border-card-border rounded-card p-4">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div className="flex items-center gap-3 flex-wrap">
+      {/* Unified Controls */}
+      <div className="ft-card">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
             {showChainSelector && (
               <>
-                <span className="text-xs text-text-muted font-medium uppercase tracking-wide">Chain:</span>
+                <span className="kicker">Chain</span>
                 <ChainSelector
                   chains={availableChains}
                   selected={selectedChain}
@@ -274,72 +300,75 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
         </div>
       </div>
 
-      {/* Market Cap Chart */}
+      {/* Market Cap */}
       {supply > 0 && selectedChain === "ALL" && (
-        <SimpleChartCard title="Market Cap (USD)">
+        <ChartCard index="(a)" title="Market Cap (USD)">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={marketCapData}>
               <defs>
                 <linearGradient id="mcGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00D4AA" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#00D4AA" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
+              <CartesianGrid strokeDasharray="2 4" stroke="var(--line)" />
               <XAxis
                 dataKey="date"
                 tickFormatter={formatShortDate}
-                stroke="#6B7280"
-                tick={{ fontSize: 10 }}
-                axisLine={{ stroke: "#2D2D3D" }}
+                stroke="var(--muted)"
+                tick={axisStyle}
+                axisLine={{ stroke: "var(--line)" }}
+                tickLine={false}
               />
               <YAxis
                 tickFormatter={(v) => `$${formatNumber(v)}`}
-                stroke="#6B7280"
-                tick={{ fontSize: 10 }}
-                axisLine={{ stroke: "#2D2D3D" }}
+                stroke="var(--muted)"
+                tick={axisStyle}
+                axisLine={{ stroke: "var(--line)" }}
+                tickLine={false}
                 width={65}
               />
               <Tooltip
-                contentStyle={tooltipStyle}
-                labelStyle={{ color: "#E4E4E7" }}
-                formatter={(value: number) => [`$${formatNumber(value)}`, "Market Cap"]}
+                formatter={(value: number) => [
+                  `$${formatNumber(value)}`,
+                  "Market Cap",
+                ]}
                 labelFormatter={formatShortDate}
               />
               <Area
                 type="monotone"
                 dataKey="marketCap"
-                stroke="#00D4AA"
+                stroke="var(--accent)"
                 fill="url(#mcGradient)"
                 strokeWidth={2}
               />
             </AreaChart>
           </ResponsiveContainer>
-        </SimpleChartCard>
+        </ChartCard>
       )}
 
-      {/* Mint/Burn Chart (USD) */}
-      <SimpleChartCard title="Mint / Burn (USD)">
+      {/* Mint / Burn */}
+      <ChartCard index="(b)" title="Mint / Burn (USD)">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
+            <CartesianGrid strokeDasharray="2 4" stroke="var(--line)" />
             <XAxis
               dataKey="date"
               tickFormatter={formatShortDate}
-              stroke="#6B7280"
-              tick={{ fontSize: 10 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
             />
             <YAxis
               tickFormatter={(v) => `$${formatNumber(v * price)}`}
-              stroke="#6B7280"
-              tick={{ fontSize: 10 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
               width={65}
             />
             <Tooltip
-              contentStyle={tooltipStyle}
-              labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number, name: string) => [
                 `$${formatNumber(value * price)}`,
                 name === "mint" ? "Mint" : "Burn",
@@ -347,67 +376,109 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
               labelFormatter={formatShortDate}
             />
             <Legend
-              wrapperStyle={{ fontSize: "12px" }}
+              wrapperStyle={{
+                fontSize: "11px",
+                fontFamily: "var(--font-jetbrains-mono)",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: "var(--ink-3)",
+              }}
               formatter={(v) => (v === "mint" ? "Mint" : "Burn")}
             />
-            <Bar dataKey="mint" fill="#00D4AA" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="burn" fill="#F43F5E" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="mint" fill="#00C331" />
+            <Bar dataKey="burn" fill="#E5484D" />
           </BarChart>
         </ResponsiveContainer>
-      </SimpleChartCard>
+      </ChartCard>
 
-      {/* Trades Chart */}
-      <SimpleChartCard title="Numero de Trades">
+      {/* Trades */}
+      <ChartCard index="(c)" title="Número de Trades">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
+            <CartesianGrid strokeDasharray="2 4" stroke="var(--line)" />
             <XAxis
               dataKey="date"
               tickFormatter={formatShortDate}
-              stroke="#6B7280"
-              tick={{ fontSize: 10 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
             />
             <YAxis
-              stroke="#6B7280"
-              tick={{ fontSize: 10 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
               width={35}
               allowDecimals={false}
             />
             <Tooltip
-              contentStyle={tooltipStyle}
-              labelStyle={{ color: "#E4E4E7" }}
-              formatter={(value: number) => [value.toLocaleString("pt-BR"), "Trades"]}
+              formatter={(value: number) => [
+                value.toLocaleString("pt-BR"),
+                "Trades",
+              ]}
               labelFormatter={formatShortDate}
             />
-            <Bar dataKey="trades" fill="#3B82F6" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="trades" fill="var(--accent)" />
           </BarChart>
         </ResponsiveContainer>
-      </SimpleChartCard>
+      </ChartCard>
 
-      {/* Wallets Chart */}
-      <SimpleChartCard title="Carteiras">
+      {/* Trade Volume */}
+      <ChartCard index="(d)" title="Volume Negociado (BRL)">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={filteredData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#2D2D3D" />
+            <CartesianGrid strokeDasharray="2 4" stroke="var(--line)" />
             <XAxis
               dataKey="date"
               tickFormatter={formatShortDate}
-              stroke="#6B7280"
-              tick={{ fontSize: 10 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
             />
             <YAxis
-              stroke="#6B7280"
-              tick={{ fontSize: 10 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              tickFormatter={(v) => `R$ ${formatNumber(v)}`}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
+              width={75}
+            />
+            <Tooltip
+              formatter={(value: number) => [
+                `R$ ${formatNumber(value)}`,
+                "Volume",
+              ]}
+              labelFormatter={formatShortDate}
+            />
+            <Bar dataKey="tradeVolume" fill="#1AD0E9" />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartCard>
+
+      {/* Wallets */}
+      <ChartCard index="(e)" title="Carteiras">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={filteredData}>
+            <CartesianGrid strokeDasharray="2 4" stroke="var(--line)" />
+            <XAxis
+              dataKey="date"
+              tickFormatter={formatShortDate}
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
+            />
+            <YAxis
+              stroke="var(--muted)"
+              tick={axisStyle}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
               width={35}
               allowDecimals={false}
             />
             <Tooltip
-              contentStyle={tooltipStyle}
-              labelStyle={{ color: "#E4E4E7" }}
               formatter={(value: number, name: string) => [
                 value.toLocaleString("pt-BR"),
                 name === "newWallets" ? "Novas" : "Ativas",
@@ -415,14 +486,20 @@ export default function ActivityCharts({ symbol, chains, priceUsd, currentSupply
               labelFormatter={formatShortDate}
             />
             <Legend
-              wrapperStyle={{ fontSize: "12px" }}
+              wrapperStyle={{
+                fontSize: "11px",
+                fontFamily: "var(--font-jetbrains-mono)",
+                letterSpacing: "0.16em",
+                textTransform: "uppercase",
+                color: "var(--ink-3)",
+              }}
               formatter={(v) => (v === "newWallets" ? "Novas" : "Ativas")}
             />
-            <Bar dataKey="newWallets" fill="#F59E0B" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="activeWallets" fill="#8B5CF6" radius={[2, 2, 0, 0]} />
+            <Bar dataKey="newWallets" fill="#FE5B00" />
+            <Bar dataKey="activeWallets" fill="#A649F0" />
           </BarChart>
         </ResponsiveContainer>
-      </SimpleChartCard>
+      </ChartCard>
     </div>
   );
 }

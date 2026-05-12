@@ -28,56 +28,62 @@ export default function ChainBreakdown() {
 
   if (loading) {
     return (
-      <div className="bg-card border border-card-border rounded-card p-5 h-[400px]">
-        <div className="skeleton w-40 h-6 mb-4" />
-        <div className="skeleton w-full h-[300px]" />
+      <div className="ft-card h-[360px]">
+        <div className="skeleton mb-4 h-5 w-40" />
+        <div className="skeleton h-[300px] w-full" />
       </div>
     );
   }
 
   return (
-    <div className="bg-card border border-card-border rounded-card p-5 card-hover">
-      <h3 className="text-lg font-semibold text-text-primary mb-4">
-        Supply por Chain (BRL)
-      </h3>
+    <div className="ft-card ft-card-hover">
+      <div className="mb-5 flex items-baseline justify-between">
+        <h3 className="font-sans text-[18px] font-semibold tracking-[-0.02em] text-ink">
+          supply by <span className="serif-em">chain</span>
+        </h3>
+        <span className="kicker">BRL</span>
+      </div>
 
       <div className="h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} layout="vertical" barSize={20}>
+          <BarChart data={data} layout="vertical" barSize={18}>
             <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="#2D2D3D"
+              strokeDasharray="2 4"
+              stroke="var(--line)"
               horizontal={false}
             />
             <XAxis
               type="number"
               tickFormatter={(v) => formatNumber(v)}
-              stroke="#6B7280"
-              tick={{ fontSize: 11 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={{
+                fontSize: 10,
+                fontFamily: "var(--font-jetbrains-mono)",
+              }}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
             />
             <YAxis
               type="category"
               dataKey="chain"
-              stroke="#6B7280"
-              tick={{ fontSize: 11 }}
-              axisLine={{ stroke: "#2D2D3D" }}
+              stroke="var(--muted)"
+              tick={{
+                fontSize: 11,
+                fontFamily: "var(--font-jetbrains-mono)",
+                fill: "var(--ink-3)",
+              }}
+              axisLine={{ stroke: "var(--line)" }}
+              tickLine={false}
               width={110}
             />
             <Tooltip
-              contentStyle={{
-                backgroundColor: "#1E1E2E",
-                border: "1px solid #2D2D3D",
-                borderRadius: "8px",
-                fontSize: "12px",
-              }}
-              labelStyle={{ color: "#E4E4E7" }}
+              cursor={{ fill: "var(--accent-soft)" }}
               formatter={(value: number) => [
                 `$ ${formatNumber(value)}`,
                 "Supply",
               ]}
             />
-            <Bar dataKey="supply" radius={[0, 6, 6, 0]}>
+            <Bar dataKey="supply" radius={[0, 2, 2, 0]}>
               {data.map((entry) => (
                 <Cell key={entry.chain} fill={entry.color} />
               ))}

@@ -3,82 +3,140 @@
 @tailwind utilities;
 
 :root {
-  --bg-primary: #0F1117;
-  --bg-card: #1E1E2E;
-  --border-card: #2D2D3D;
-  --accent-teal: #00D4AA;
-  --accent-cyan: #00B4D8;
-  --accent-purple: #7C3AED;
+  --paper: #ffffff;
+  --paper-2: #fafaf8;
+  --ink: #111111;
+  --ink-2: #2a2a2a;
+  --ink-3: #4a4a4a;
+  --muted: #8a8a8a;
+  --muted-2: #b8b8b8;
+  --line: #ececec;
+  --line-2: #111111;
+  --accent: #3d52ef;
+  --accent-soft: #eef0fe;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #0b0b0e;
+  --paper-2: #121217;
+  --ink: #f2f2f0;
+  --ink-2: #d6d6d2;
+  --ink-3: #a8a8a6;
+  --muted: #6e6e70;
+  --muted-2: #3e3e42;
+  --line: #1f1f25;
+  --line-2: #f2f2f0;
+  --accent: #7c8cff;
+  --accent-soft: #161827;
+  color-scheme: dark;
 }
 
 * {
   box-sizing: border-box;
 }
 
+html,
 body {
-  background-color: var(--bg-primary);
-  color: #E4E4E7;
-  font-family: "Inter", system-ui, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
 }
 
-/* Dark scrollbar */
+body {
+  font-family: var(--font-space-grotesk), sans-serif;
+  font-feature-settings: "ss01", "ss02", "cv11";
+  -webkit-font-smoothing: antialiased;
+  transition: background 0.25s ease, color 0.25s ease;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+::selection {
+  background-color: var(--accent);
+  color: var(--paper);
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0F1117;
+  background: var(--paper);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2D2D3D;
+  background: var(--line);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3D3D4D;
+  background: var(--muted-2);
 }
 
-/* Firefox scrollbar */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2D2D3D #0F1117;
+  scrollbar-color: var(--line) var(--paper);
 }
 
-/* Gradient text utility */
-@layer utilities {
-  .text-gradient-teal {
-    background: linear-gradient(135deg, #00D4AA, #00B4D8);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
+/* Frame container — same dimensions as reports.fintrender */
+.frame {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 32px 64px 64px;
+}
 
-  .text-gradient-purple {
-    background: linear-gradient(135deg, #7C3AED, #EC4899);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+@media (max-width: 760px) {
+  .frame {
+    padding: 20px 22px 56px;
   }
 }
 
-/* Card hover animation */
+/* Typography helpers used across the dashboard */
+.kicker {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.serif-em {
+  font-family: var(--font-instrument-serif), serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--accent);
+}
+
 @layer components {
-  .card-hover {
-    @apply transition-all duration-300 ease-out;
+  /* Surface card — flat, hairline border, Fintrender style */
+  .ft-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    padding: 22px 24px;
+    transition: border-color 0.15s ease, background 0.15s ease;
   }
 
-  .card-hover:hover {
-    @apply border-accent-teal/30 shadow-lg;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0, 212, 170, 0.08);
+  .ft-card-hover:hover {
+    border-color: var(--ink-2);
   }
 
   /* Loading skeleton shimmer */
   .skeleton {
-    @apply relative overflow-hidden rounded-lg;
-    background: #1E1E2E;
+    position: relative;
+    overflow: hidden;
+    background: var(--paper-2);
   }
 
   .skeleton::after {
@@ -91,11 +149,21 @@ body {
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.04),
+      rgba(0, 0, 0, 0.04),
       transparent
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
+  }
+
+  [data-theme="dark"] .skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.04),
+      transparent
+    );
+    background-size: 200% 100%;
   }
 
   @keyframes shimmer {
@@ -108,23 +176,33 @@ body {
   }
 }
 
-/* Recharts tooltip customization */
+/* Recharts adjustments — match Fintrender minimal style */
 .recharts-tooltip-wrapper {
   outline: none !important;
 }
 
 .recharts-default-tooltip {
-  background-color: #1E1E2E !important;
-  border: 1px solid #2D2D3D !important;
-  border-radius: 8px !important;
-  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3) !important;
+  background-color: var(--paper) !important;
+  border: 1px solid var(--line-2) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme="dark"] .recharts-default-tooltip {
+  background-color: var(--paper-2) !important;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45) !important;
 }
 
 .recharts-tooltip-label {
-  color: #E4E4E7 !important;
-  font-weight: 600 !important;
+  color: var(--ink) !important;
+  font-weight: 500 !important;
+  font-family: var(--font-jetbrains-mono), monospace !important;
+  font-size: 11px !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
 }
 
 .recharts-tooltip-item {
-  color: #9CA3AF !important;
+  color: var(--ink-3) !important;
+  font-family: var(--font-space-grotesk), sans-serif !important;
 }
