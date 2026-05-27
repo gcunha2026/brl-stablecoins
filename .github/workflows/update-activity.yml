@@ -1,0 +1,31 @@
+name: Update activity data
+
+# Daily refresh of on-chain activity into Supabase.
+# Replaces the Vercel cron, which timed out against Vercel's 60s function limit.
+# Runs scripts/update-now.ts (same logic as the old cron) with no time limit.
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # daily at 06:00 UTC
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+concurrency:
+  group: update-activity
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Update Supabase from on-chain data
+        run: npx tsx scripts/update-now.ts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
