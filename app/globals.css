@@ -2,33 +2,45 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fonte de verdade dos tokens da marca Fintrender ("Play the NXT*"). */
+@import "./fintrender-theme.css";
+
+/* Aliases dos tokens antigos -> novos da identidade Fintrender.
+   Mantemos pra todos os componentes legados (StatCard, charts, table, etc)
+   continuarem funcionando enquanto compartilhamos o tema com reports.fintrender. */
 :root {
-  --paper: #ffffff;
-  --paper-2: #fafaf8;
-  --ink: #111111;
-  --ink-2: #2a2a2a;
-  --ink-3: #4a4a4a;
-  --muted: #8a8a8a;
-  --muted-2: #b8b8b8;
-  --line: #ececec;
-  --line-2: #111111;
-  --accent: #3d52ef;
+  --paper: var(--bg-elevated);
+  --paper-2: var(--bg);
+  --ink: var(--fg);
+  --ink-2: var(--fg);
+  --ink-3: var(--fg);
+  --muted: var(--fg-muted);
+  --muted-2: var(--hairline);
+  --line: var(--hairline);
+  --line-2: var(--hairline-strong);
+  --accent: var(--ft-azul);
   --accent-soft: #eef0fe;
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --paper: #0b0b0e;
-  --paper-2: #121217;
-  --ink: #f2f2f0;
-  --ink-2: #d6d6d2;
-  --ink-3: #a8a8a6;
-  --muted: #6e6e70;
-  --muted-2: #3e3e42;
-  --line: #1f1f25;
-  --line-2: #f2f2f0;
-  --accent: #7c8cff;
-  --accent-soft: #161827;
+  --bg: #111111;
+  --bg-elevated: #1a1a1a;
+  --fg: #f2f2f0;
+  --fg-muted: #a8a8a6;
+  --hairline: #2a2a2a;
+  --hairline-strong: #f2f2f0;
+  --paper: var(--bg-elevated);
+  --paper-2: var(--bg);
+  --ink: var(--fg);
+  --ink-2: var(--fg);
+  --ink-3: var(--fg-muted);
+  --muted: var(--fg-muted);
+  --muted-2: var(--hairline);
+  --line: var(--hairline);
+  --line-2: var(--hairline-strong);
+  --accent: #6982FF;
+  --accent-soft: #1c1f3a;
   color-scheme: dark;
 }
 
@@ -38,13 +50,12 @@
 
 html,
 body {
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--bg);
+  color: var(--fg);
 }
 
 body {
-  font-family: var(--font-space-grotesk), sans-serif;
-  font-feature-settings: "ss01", "ss02", "cv11";
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   transition: background 0.25s ease, color 0.25s ease;
   min-height: 100vh;
@@ -62,8 +73,8 @@ button {
 }
 
 ::selection {
-  background-color: var(--accent);
-  color: var(--paper);
+  background-color: var(--ft-azul);
+  color: var(--fg-on-brand);
 }
 
 ::-webkit-scrollbar {
@@ -89,11 +100,13 @@ button {
   scrollbar-color: var(--line) var(--paper);
 }
 
-/* Frame container — same dimensions as reports.fintrender */
+/* Coluna do corpo (Hero, Stats, dashboard, Footer). Igual reports.fintrender.com:
+   max-width 1200px, padding lateral pequeno. Header continua fora desse container
+   e ocupa a viewport toda. */
 .frame {
-  max-width: 1440px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 32px 64px 64px;
+  padding: 24px 32px 64px;
 }
 
 @media (max-width: 760px) {
@@ -102,13 +115,14 @@ button {
   }
 }
 
-/* Typography helpers used across the dashboard */
+/* Typography helpers used across the dashboard. Migracao para Roboto Mono
+   (idem reports.fintrender.com); JetBrains Mono fica como fallback nos charts. */
 .kicker {
-  font-family: var(--font-jetbrains-mono), monospace;
+  font-family: var(--font-roboto-mono), var(--font-jetbrains-mono), monospace;
   font-size: 11px;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fg-muted);
   font-weight: 500;
 }
 
@@ -116,7 +130,7 @@ button {
   font-family: var(--font-instrument-serif), serif;
   font-style: italic;
   font-weight: 400;
-  color: var(--accent);
+  color: var(--ft-azul);
 }
 
 @layer components {

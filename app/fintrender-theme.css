@@ -1,0 +1,190 @@
+/* ============================================================
+   FINTRENDER — THEME / IDENTIDADE VISUAL
+   Drop-in theme. Source of truth: Fintrender Design System
+   ("Play the NXT*"). As fontes (Roboto + Roboto Mono) são
+   carregadas via next/font em app/layout.tsx e expostas como
+   --font-roboto e --font-roboto-mono — não precisa do @import.
+   ============================================================ */
+
+:root {
+  /* ───── Raw palette ───── */
+  --ft-branco:   #FFFFFF;
+  --ft-cinza-01: #F2F2F2;
+  --ft-cinza-02: #D9D9D9;
+  --ft-cinza-03: #757575;
+  --ft-cinza-04: #202020;
+  --ft-preto:    #000000;
+
+  --ft-azul:     #3D52EF;
+  --ft-azul-02:  #1AD0E9;
+  --ft-azul-03:  #294199;
+  --ft-azul-04:  #6982FF;
+
+  --ft-verde:    #00C331;
+  --ft-laranja:  #FE5B00;
+  --ft-rosa:     #FF7DCF;
+  --ft-roxo:     #A649F0;
+  --ft-amarelo:  #F0EB3E;
+
+  /* ───── Semantic ───── */
+  --bg:           var(--ft-cinza-01);
+  --bg-elevated:  var(--ft-branco);
+  --bg-inverse:   var(--ft-cinza-04);
+  --bg-brand:     var(--ft-azul);
+  --bg-brand-deep:var(--ft-azul-03);
+
+  --fg:           var(--ft-cinza-04);
+  --fg-strong:    var(--ft-preto);
+  --fg-muted:     var(--ft-cinza-03);
+  --fg-on-brand:  var(--ft-cinza-01);
+  --fg-on-dark:   var(--ft-cinza-01);
+  --fg-link:      var(--ft-azul);
+
+  --hairline:        var(--ft-cinza-02);
+  --hairline-strong: var(--ft-cinza-04);
+
+  --signal-up:   var(--ft-verde);
+  --signal-down: var(--ft-laranja);
+  --signal-info: var(--ft-azul);
+
+  /* ───── Gradients ───── */
+  --grad-hero:        linear-gradient(180deg, var(--ft-azul) 0%, rgba(242,242,242,0) 100%);
+  --grad-hero-bottom: linear-gradient(0deg,   var(--ft-azul) 0%, rgba(242,242,242,0) 100%);
+  --grad-deep:        linear-gradient(180deg, var(--ft-azul-03) 0%, var(--ft-azul) 100%);
+
+  /* ───── Type families ─────
+     next/font define --font-roboto e --font-roboto-mono.
+     Mantemos fallback no fim para qualquer cenário SSR. */
+  --font-display: var(--font-roboto-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-mono:    var(--font-roboto-mono), ui-monospace, "SF Mono", Menlo, monospace;
+  --font-sans:    var(--font-roboto), -apple-system, "Helvetica Neue", Arial, sans-serif;
+
+  --tracking-tight:  -0.04em;
+  --tracking-normal: 0em;
+
+  /* ───── Type scale (desktop) ───── */
+  --fs-h1:      62px;
+  --fs-h2:      42px;
+  --fs-h3:      36px;
+  --fs-h4:      24px;
+  --fs-title:   22px;
+  --fs-lead:    24px;
+  --fs-body:    18px;
+  --fs-meta:    16px;
+  --fs-caption: 12px;
+
+  /* ───── Spacing ───── */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 24px; --space-6: 30px; --space-7: 40px; --space-8: 64px;
+  --space-9: 96px; --space-10: 128px;
+
+  /* ───── Radii ───── */
+  --radius-2: 8px;
+  --radius-3: 12px;
+  --radius-4: 16px;
+  --radius-6: 32px;
+  --radius-pill: 999px;
+
+  /* ───── Elevation ───── */
+  --shadow-card: 0 2px 12px rgba(32, 32, 32, 0.06);
+  --shadow-lift: 0 12px 32px rgba(32, 32, 32, 0.18);
+
+  /* ───── Motion ───── */
+  --ease-standard: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur-fast: 120ms; --dur-base: 220ms; --dur-slow: 420ms;
+}
+
+/* ───── Base ───── */
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ───── Headings — Roboto Mono, -4% tracking ───── */
+h1, .h1 { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-h1); line-height: 1; letter-spacing: var(--tracking-tight); color: var(--fg-strong); margin: 0; }
+h2, .h2 { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-h2); line-height: 1.05; letter-spacing: var(--tracking-tight); color: var(--fg); margin: 0; }
+h3, .h3 { font-family: var(--font-display); font-weight: 400; font-size: var(--fs-h3); line-height: 1.1; letter-spacing: var(--tracking-tight); color: var(--fg); margin: 0; }
+h4, .h4 { font-family: var(--font-display); font-weight: 500; font-size: var(--fs-title); line-height: 1.2; letter-spacing: var(--tracking-tight); color: var(--fg); margin: 0; }
+
+/* ───── Text roles ───── */
+.lead   { font-family: var(--font-sans); font-size: var(--fs-lead); line-height: 1.35; color: var(--fg); }
+.body   { font-family: var(--font-sans); font-size: var(--fs-body); line-height: 1.55; color: var(--fg); }
+.meta   { font-family: var(--font-sans); font-weight: 500; font-size: var(--fs-meta); color: var(--fg-muted); }
+.caption{ font-family: var(--font-mono); font-size: var(--fs-caption); letter-spacing: var(--tracking-tight); color: var(--fg-muted); }
+
+/* Mono signal */
+.mono, .signal, code, .ticker, .delta {
+  font-family: var(--font-mono);
+  letter-spacing: var(--tracking-tight);
+}
+
+/* Brand asterisk */
+.star { color: var(--ft-azul); font-weight: 700; }
+
+/* ───── Components ───── */
+.ft-card {
+  background: var(--bg-elevated);
+  border-radius: var(--radius-6);
+  padding: var(--space-7);
+}
+.ft-card--media {
+  border-radius: var(--radius-6);
+  overflow: hidden;
+}
+
+.ft-btn {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  padding: 12px 22px;
+  border-radius: var(--radius-3);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: background var(--dur-base) var(--ease-standard),
+              transform var(--dur-fast) var(--ease-standard);
+}
+.ft-btn:active { transform: scale(0.96); }
+
+.ft-btn--brand   { background: var(--ft-azul);     border-color: var(--ft-azul);     color: var(--fg-on-brand); }
+.ft-btn--brand:hover   { background: var(--ft-azul-03); border-color: var(--ft-azul-03); }
+.ft-btn--dark    { background: var(--ft-cinza-04); border-color: var(--ft-cinza-04); color: var(--fg-on-dark); }
+.ft-btn--outline { background: var(--ft-branco);   border-color: var(--ft-cinza-02); color: var(--ft-cinza-04); }
+.ft-btn--outline:hover { box-shadow: var(--shadow-card); }
+
+.ft-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  letter-spacing: var(--tracking-tight);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--ft-cinza-01);
+  color: var(--fg);
+  border: 1px solid var(--hairline);
+}
+
+.ft-input {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  padding: 12px 16px;
+  border-radius: var(--radius-3);
+  border: 1px solid var(--ft-cinza-02);
+  background: var(--ft-branco);
+  color: var(--fg);
+}
+.ft-input:focus { outline: none; border-color: var(--ft-azul); }
+
+.ft-hr        { border: none; border-top: 1px solid var(--hairline); }
+.ft-hr--strong{ border: none; border-top: 1px solid var(--hairline-strong); }
+
+.ft-hero-wash { position: relative; }
+.ft-hero-wash::before {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 634px;
+  background: var(--grad-hero); pointer-events: none; z-index: 0;
+}

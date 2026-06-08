@@ -1,39 +1,199 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
 
+const REPORTS_URL = "https://reports.fintrender.com";
+const WORK_URL = "https://reports.fintrender.com/work-with-us";
+const SITE_URL = "https://fintrender.com";
+
+// Header visual e estruturalmente igual ao de reports.fintrender.com:
+//
+// Linha 1 (top bar): TRUE full-bleed da viewport. F na borda esquerda,
+//   "Fintrender" no centro absoluto da viewport, controles na borda direita.
+//
+// Linha 2 (nav): wrapper full-bleed (border-bottom corre a tela inteira),
+//   nav-inner e' coluna estreita centralizada. Items: Reports / Fintrender.com /
+//   Together / BRLStablecoins (este ultimo ativo, e' a propria pagina).
 export default function Header() {
+  const pathname = usePathname() ?? "/";
+  const isBrlStables = pathname === "/" || pathname.startsWith("/stablecoin") || pathname.startsWith("/methodology");
   return (
-    <header className="flex items-center justify-between pb-[18px] border-b-[1.5px] border-line-2">
-      <a className="flex items-center gap-3 text-ink" href="/">
-        <svg
-          className="h-7 w-[30px]"
-          viewBox="0 0 158.23 148.85"
-          fill="currentColor"
-          aria-hidden="true"
-        >
-          <path d="M37.15,50.22l-37.15.04v34.14c22.07-.61,36.45-13.86,37.15-34.18Z" />
-          <path d="M37.2,10.34v22.29h39.5l43.45-.05c22.98-2.11,35.82-14.83,38.06-32.33l.03-.2-110.55-.04c-2.81,0-5.44,1.08-7.42,3.04-1.97,1.95-3.06,4.55-3.06,7.3Z" />
-          <path d="M113.99,50.26l-36.44-.04c-.59,22.88-16.63,36.99-40.41,37.73l.06,60.91c29.41-4.81,32.52-16.94,32.52-42.98l-.03-21.55,3.96.15c20.09.73,36.82-14.92,40.33-34.22Z" />
-        </svg>
-        <span className="text-[20px] font-semibold tracking-[-0.025em] text-ink">
-          Fintrender
-        </span>
-      </a>
-      <nav className="flex items-center gap-7 font-mono text-[12px] uppercase tracking-[0.18em] text-muted">
-        <a
-          href="https://fintrender.com"
-          className="text-ink-3 transition-colors hover:text-accent hidden sm:inline"
-        >
-          fintrender.com
+    <header className="topbar">
+      <div className="row main">
+        <a className="brand-mark" href={SITE_URL} aria-label="Fintrender">
+          <span className="mark-bg">
+            <img
+              className="mark"
+              src="/brand/mark.png"
+              alt=""
+              width={40}
+              height={40}
+            />
+          </span>
         </a>
-        <span className="text-accent">BRL Stablecoins</span>
-        <a
-          href="mailto:contato@fintrender.com"
-          className="text-ink-3 transition-colors hover:text-accent"
-        >
-          Contact
+        <a className="brand-name" href={SITE_URL} aria-label="Fintrender">
+          <img
+            className="wordmark"
+            src="/brand/wordmark.png"
+            alt="Fintrender"
+            width={377}
+            height={72}
+          />
         </a>
-        <ThemeToggle />
-      </nav>
+        <div className="controls">
+          <ThemeToggle />
+        </div>
+      </div>
+
+      <div className="nav-wrap">
+        <nav className="nav-inner" aria-label="Primary">
+          <a className="nav-item" href={REPORTS_URL} target="_blank" rel="noopener">
+            Reports
+          </a>
+          <a className="nav-item" href={SITE_URL} target="_blank" rel="noopener">
+            Fintrender.com
+          </a>
+          <a className="nav-item" href={WORK_URL} target="_blank" rel="noopener">
+            Together
+          </a>
+          <a
+            className={`nav-item ${isBrlStables ? "active" : ""}`}
+            href="/"
+            aria-current={isBrlStables ? "page" : undefined}
+          >
+            BRLStablecoins
+          </a>
+        </nav>
+      </div>
+
+      <style jsx>{`
+        .topbar {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .row.main {
+          display: grid;
+          grid-template-columns: 1fr auto 1fr;
+          align-items: center;
+          padding: 23px 20px;
+          border-bottom: 1px solid var(--hairline);
+        }
+        .brand-mark {
+          justify-self: start;
+          display: inline-flex;
+          color: var(--fg);
+        }
+        .brand-mark :global(.mark-bg) {
+          width: 40px;
+          height: 40px;
+          background: var(--ft-branco);
+          border-radius: var(--radius-2);
+          overflow: hidden;
+          display: inline-flex;
+          flex-shrink: 0;
+        }
+        .brand-mark :global(.mark) {
+          width: 40px;
+          height: 40px;
+          object-fit: cover;
+          display: block;
+        }
+        .brand-name {
+          justify-self: center;
+          display: inline-flex;
+          align-items: center;
+          color: var(--fg);
+          text-decoration: none;
+        }
+        .brand-name :global(.wordmark) {
+          max-height: 36px;
+          width: auto;
+          height: auto;
+          display: block;
+          object-fit: contain;
+        }
+        :global([data-theme="dark"]) .brand-name :global(.wordmark) {
+          filter: invert(1) hue-rotate(180deg);
+        }
+        .controls {
+          justify-self: end;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .nav-wrap {
+          border-bottom: 1px solid var(--hairline);
+        }
+        .nav-inner {
+          max-width: 1440px;
+          margin: 0 auto;
+          display: flex;
+          justify-content: center;
+          gap: 0;
+          padding: 0 20px;
+          min-height: 48px;
+        }
+        .nav-item {
+          font-family: var(--font-sans);
+          font-size: 14px;
+          font-weight: 500;
+          line-height: 20px;
+          letter-spacing: 0;
+          color: var(--fg-muted);
+          text-decoration: none;
+          min-height: 48px;
+          display: inline-flex;
+          align-items: center;
+          padding: 0 12px;
+          border-radius: 4px 4px 0 0;
+          border-bottom: 3px solid transparent;
+          transition: color 0.15s ease, background-color 0.15s ease;
+        }
+        .nav-item:hover {
+          color: var(--fg);
+          background-color: rgba(32, 32, 32, 0.06);
+        }
+        .nav-item.active {
+          color: var(--fg);
+          font-weight: 700;
+          border-bottom-color: currentColor;
+        }
+        .nav-item.active:hover {
+          background-color: rgba(32, 32, 32, 0.06);
+        }
+
+        @media (max-width: 760px) {
+          .row.main {
+            grid-template-columns: auto 1fr auto;
+            gap: 12px;
+            padding: 16px 16px;
+          }
+          .brand-mark :global(.mark-bg),
+          .brand-mark :global(.mark) {
+            width: 32px;
+            height: 32px;
+          }
+          .brand-name :global(.wordmark) {
+            max-height: 28px;
+          }
+          .nav-inner {
+            gap: 0;
+            overflow-x: auto;
+            justify-content: flex-start;
+            padding: 0 16px;
+            min-height: 44px;
+          }
+          .nav-item {
+            white-space: nowrap;
+            font-size: 14px;
+            min-height: 44px;
+            padding: 0 10px;
+          }
+        }
+      `}</style>
     </header>
   );
 }
