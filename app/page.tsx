@@ -27,12 +27,17 @@ export default function DashboardPage() {
   const [coins, setCoins] = useState<CoinWithChains[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>("consolidado");
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [activityCache, setActivityCache] = useState<
     Record<string, ActivityCache>
   >({});
   const prefetchStarted = useRef(false);
 
   useEffect(() => {
+    fetch("/api/last-updated")
+      .then((r) => r.json())
+      .then((j) => setLastUpdated(j.last_activity_date ?? null))
+      .catch(() => {});
     Promise.all([fetchOverview(), fetchStablecoins()]).then(
       ([ov, stablecoins]) => {
         setOverview(ov);
@@ -95,6 +100,23 @@ export default function DashboardPage() {
             <span>On-chain Intelligence</span>
             <span className="bar">·</span>
             <span className="live">Live</span>
+            {lastUpdated && (
+              <>
+                <span className="bar">·</span>
+                <span title="Latest day with on-chain activity ingested into the dashboard">
+                  Updated{" "}
+                  {new Date(lastUpdated + "T00:00:00Z").toLocaleDateString(
+                    "en-US",
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "2-digit",
+                      timeZone: "UTC",
+                    }
+                  )}
+                </span>
+              </>
+            )}
           </div>
 
           <h1 className="hero-h1">
@@ -360,6 +382,17 @@ export default function DashboardPage() {
       <div className="ft-foot-bot">
         <span>© {new Date().getFullYear()} Fintrender · All rights reserved.</span>
         <div className="links">
+          {lastUpdated && (
+            <span title="Latest day with on-chain activity ingested">
+              Data through{" "}
+              {new Date(lastUpdated + "T00:00:00Z").toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "short",
+                day: "2-digit",
+                timeZone: "UTC",
+              })}
+            </span>
+          )}
           <a href="/methodology">Methodology</a>
           <span>brl.fintrender.com</span>
         </div>
